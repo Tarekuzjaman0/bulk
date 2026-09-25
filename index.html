@@ -74,6 +74,34 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
+        /* --- Checkbox Styling --- */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+
+        .checkbox-wrapper label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            user-select: none;
+        }
+
         .file-input-wrapper {
             position: relative;
             overflow: hidden;
@@ -402,8 +430,14 @@
         <h2>Auto-Scaling Quiz Generator</h2>
         <p>আপনার JSON ফাইলটি সিলেক্ট করুন এবং প্রফেশনাল ইমেজ তৈরি করুন</p>
         
-        <!-- Subject Input added here -->
+        <!-- Subject Input -->
         <input type="text" id="subjectInput" class="subject-input" placeholder="সাবজেক্টের নাম (যেমন: সাধারণ জ্ঞান / বাংলা)">
+        
+        <!-- New Checkbox Added Here -->
+        <div class="checkbox-wrapper">
+            <input type="checkbox" id="hideAnswerMode">
+            <label for="hideAnswerMode">উত্তর ছাড়া জেনারেট করুন (Answer Hide)</label>
+        </div>
         
         <div class="file-input-wrapper">
             <div class="btn-upload">
@@ -431,7 +465,7 @@
             <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Play Store" class="play-badge" onerror="this.style.display='none'">
 
             <!-- Subject Heading Badge -->
-            <div class="subject-badge" id="subject-badge">বিষয়</div>
+            <div class="subject-badge" id="subject-badge">বিষয়</div>
 
             <!-- Fixed Size Main Content Boundary -->
             <div class="content-wrapper">
@@ -549,6 +583,9 @@
             const elementToCapture = document.getElementById('capture-area');
             const innerContent = document.getElementById('inner-content');
             
+            // Check if Answer Hide mode is checked
+            const isHideAnswerMode = document.getElementById('hideAnswerMode').checked;
+            
             for (let i = 0; i < dataArray.length; i++) {
                 const data = dataArray[i];
                 updateStatus(`Generating image ${i + 1} of ${dataArray.length}...`);
@@ -568,11 +605,13 @@
                 document.getElementById('txt-c').innerText = data.answer3 || "";
                 document.getElementById('txt-d').innerText = data.answer4 || "";
 
-                // Reset and apply correct state
+                // Reset all options (remove correct class)
                 ['a', 'b', 'c', 'd'].forEach(opt => {
                     document.getElementById(`opt-${opt}`).classList.remove('correct');
                 });
-                if (data.correct) {
+                
+                // Apply correct state ONLY if "Hide Answer" mode is NOT checked
+                if (!isHideAnswerMode && data.correct) {
                     let correctKey = data.correct.toLowerCase();
                     const optionEl = document.getElementById(`opt-${correctKey}`);
                     if (optionEl) optionEl.classList.add('correct');
