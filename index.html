@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Auto-Scaling Quiz Generator</title>
+    
+    <!-- Google Fonts for Bengali: Noto Sans Bengali -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- html2canvas Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- JSZip Library for Downloading All Images -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans Bengali', sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        /* --- UI Controls Styling --- */
+        .controls {
+            background: #ffffff;
+            padding: 35px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .controls h2 {
+            color: #0f172a;
+            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .controls p {
+            color: #64748b;
+            margin-bottom: 25px;
+            font-size: 16px;
+        }
+        
+        /* Subject Input Field */
+        .subject-input {
+            width: 100%;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .subject-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .btn-upload {
+            border: 2px dashed #cbd5e1;
+            color: #334155;
+            background-color: #f8fafc;
+            padding: 16px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .btn-upload:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            color: #2563eb;
+        }
+
+        .controls input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+            width: 100%;
+        }
+
+        #statusText {
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 16px;
+            min-height: 24px;
+        }
+
+        .download-all-btn {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+            display: none;
+        }
+
+        .download-all-btn:hover {
+            background-color: #059669;
+        }
+
+        /* --- Results UI --- */
+        #results-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .result-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            padding: 15px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .result-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .result-item img {
+            width: 300px;
+            height: 300px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            object-fit: cover;
+            border: 1px solid #e2e8f0;
+        }
+
+        .download-btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        .download-btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* --- Actual Image Generation Area --- */
+        #render-wrapper {
+            position: fixed;
+            top: 0;
+            left: -9999px; /* Hide completely offscreen */
+        }
+
+        .fb-post-container {
+            width: 1080px;
+            height: 1080px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #f3e8ff 100%);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Premium Abstract Background Blobs */
+        .bg-blob-1 {
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            width: 600px;
+            height: 600px;
+            background: rgba(147, 197, 253, 0.45);
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 1;
+        }
+
+        .bg-blob-2 {
+            position: absolute;
+            bottom: -100px;
+            right: -100px;
+            width: 700px;
+            height: 700px;
+            background: rgba(196, 181, 253, 0.45);
+            border-radius: 50%;
+            filter: blur(90px);
+            z-index: 1;
+        }
+
+        /* Fixed placements for Logo and Badge so they NEVER overlap */
+        .logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            max-width: 200px;
+            max-height: 200px;
+            z-index: 10;
+            object-fit: contain;
+        }
+
+        .play-badge {
+            position: absolute;
+            bottom: 50px;
+            right: 50px;
+            max-width: 180px;
+            max-height: 60px;
+            z-index: 10;
+            object-fit: contain;
+        }
+        
+        /* Subject Heading Badge at the Top Middle */
+        .subject-badge {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+            color: white;
+            padding: 12px 40px;
+            border-radius: 50px;
+            font-size: 28px;
+            font-weight: 800;
+            z-index: 30;
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+            display: none; /* Hidden until text is provided */
+            white-space: nowrap;
+        }
+
+        /* GLASSMORPHISM CONTENT WRAPPER */
+        .content-wrapper {
+            position: relative;
+            z-index: 20;
+            width: 880px; 
+            height: 760px;
+            background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 36px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04), inset 0 0 0 1px rgba(255,255,255,0.5);
+            
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 50px;
+        }
+
+        .inner-content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 45px;
+            transform-origin: center center;
+            transition: transform 0s;
+        }
+
+        .question-text {
+            font-size: 48px;
+            font-weight: 700;
+            color: #0f172a; 
+            text-align: center;
+            line-height: 1.4;
+            width: 100%;
+            word-wrap: break-word;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+        }
+
+        /* Premium Eye-Comfort Options */
+        .option {
+            display: flex;
+            flex-direction: row;
+            min-height: 90px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9); 
+            border: 2px solid rgba(226, 232, 240, 0.8); 
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02); 
+            align-items: stretch;
+        }
+
+        .option-letter {
+            width: 110px;
+            background: #4f46e5;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .option-text-wrapper {
+            flex: 1;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 32px;
+            font-weight: 600;
+            color: #334155; 
+            line-height: 1.3;
+        }
+
+        .option.correct {
+            background: #ecfdf5; 
+            border-color: #10b981;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.1);
+        }
+
+        .option.correct .option-letter {
+            background: #10b981; 
+        }
+
+        .option.correct .option-text-wrapper {
+            color: #064e3b; 
+        }
+
+        .check-icon {
+            display: none;
+            width: 44px;
+            height: 44px;
+            background-color: #10b981;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            color: white; 
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+            flex-shrink: 0;
+            margin-left: 20px;
+        }
+
+        .check-icon svg {
+            width: 26px;
+            height: 26px;
+            stroke-width: 4;
+        }
+
+        .option.correct .check-icon {
+            display: flex; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h2>Auto-Scaling Quiz Generator</h2>
+        <p>আপনার JSON ফাইলটি সিলেক্ট করুন এবং প্রফেশনাল ইমেজ তৈরি করুন</p>
+        
+        <!-- Subject Input added here -->
+        <input type="text" id="subjectInput" class="subject-input" placeholder="সাবজেক্টের নাম (যেমন: সাধারণ জ্ঞান / বাংলা)">
+        
+        <div class="file-input-wrapper">
+            <div class="btn-upload">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Select JSON File
+            </div>
+            <input type="file" id="jsonInput" accept=".json">
+        </div>
+        
+        <p id="statusText"></p>
+        <button id="downloadAllBtn" class="download-all-btn">Download All Images (ZIP)</button>
+    </div>
+
+    <div id="results-container"></div>
+
+    <div id="render-wrapper">
+        <div class="fb-post-container" id="capture-area">
+            
+            <!-- Abstract background blobs -->
+            <div class="bg-blob-1"></div>
+            <div class="bg-blob-2"></div>
+            
+            <!-- Logo & Play Badge (Fixed positions) -->
+            <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Play Store" class="play-badge" onerror="this.style.display='none'">
+
+            <!-- Subject Heading Badge -->
+            <div class="subject-badge" id="subject-badge">বিষয়</div>
+
+            <!-- Fixed Size Main Content Boundary -->
+            <div class="content-wrapper">
+                
+                <div class="inner-content" id="inner-content">
+                    <div class="question-text" id="q-text">এখানে আপনার প্রশ্ন থাকবে।</div>
+
+                    <div class="options-container">
+                        
+                        <div class="option" id="opt-a">
+                            <div class="option-letter">ক</div>
+                            <div class="option-text-wrapper">
+                                <span id="txt-a">প্রথম অপশন</span>
+                                <div class="check-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="option" id="opt-b">
+                            <div class="option-letter">খ</div>
+                            <div class="option-text-wrapper">
+                                <span id="txt-b">দ্বিতীয় অপশন</span>
+                                <div class="check-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="option" id="opt-c">
+                            <div class="option-letter">গ</div>
+                            <div class="option-text-wrapper">
+                                <span id="txt-c">তৃতীয় অপশন</span>
+                                <div class="check-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="option" id="opt-d">
+                            <div class="option-letter">ঘ</div>
+                            <div class="option-text-wrapper">
+                                <span id="txt-d">চতুর্থ অপশন</span>
+                                <div class="check-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusText = document.getElementById('statusText');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        let generatedImagesArray = []; 
+        
+        function updateStatus(message, color = '#2563eb') {
+            statusText.innerText = message;
+            statusText.style.color = color;
+        }
+
+        document.getElementById('jsonInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        if (!Array.isArray(jsonData) || jsonData.length === 0) {
+                            throw new Error("JSON file must be a non-empty array.");
+                        }
+                        
+                        // Handle Subject Name
+                        const subjectVal = document.getElementById('subjectInput').value.trim();
+                        const badgeEl = document.getElementById('subject-badge');
+                        if(subjectVal !== "") {
+                            badgeEl.innerText = subjectVal;
+                            badgeEl.style.display = 'block';
+                        } else {
+                            badgeEl.style.display = 'none';
+                        }
+
+                        // Reset UI for new generation
+                        document.getElementById('results-container').innerHTML = ''; 
+                        generatedImagesArray = [];
+                        downloadAllBtn.style.display = 'none';
+                        
+                        generateImages(jsonData);
+                    } catch (error) {
+                        updateStatus("Invalid JSON file! Please make sure the format is correct.", "#ef4444");
+                        console.error(error);
+                    }
+                };
+                
+                reader.onerror = function() { updateStatus("Error reading file.", "#ef4444"); }
+                reader.readAsText(file);
+            }
+        });
+
+        async function generateImages(dataArray) {
+            const resultsContainer = document.getElementById('results-container');
+            const elementToCapture = document.getElementById('capture-area');
+            const innerContent = document.getElementById('inner-content');
+            
+            for (let i = 0; i < dataArray.length; i++) {
+                const data = dataArray[i];
+                updateStatus(`Generating image ${i + 1} of ${dataArray.length}...`);
+
+                // 1. Reset scale before injecting new text
+                innerContent.style.transform = 'scale(1)';
+                
+                // 2. Inject Text (and remove numbers like "1. " or "১২. " at the start)
+                let rawQuestion = data.question || "প্রশ্ন পাওয়া যায়নি";
+                
+                // REGEX: ^[0-9০-৯]+\.\s*  (Removes starting numbers [English/Bengali], followed by dot and spaces)
+                let cleanedQuestion = rawQuestion.replace(/^[0-9০-৯]+\.\s*/, '');
+                
+                document.getElementById('q-text').innerText = cleanedQuestion;
+                document.getElementById('txt-a').innerText = data.answer1 || "";
+                document.getElementById('txt-b').innerText = data.answer2 || "";
+                document.getElementById('txt-c').innerText = data.answer3 || "";
+                document.getElementById('txt-d').innerText = data.answer4 || "";
+
+                // Reset and apply correct state
+                ['a', 'b', 'c', 'd'].forEach(opt => {
+                    document.getElementById(`opt-${opt}`).classList.remove('correct');
+                });
+                if (data.correct) {
+                    let correctKey = data.correct.toLowerCase();
+                    const optionEl = document.getElementById(`opt-${correctKey}`);
+                    if (optionEl) optionEl.classList.add('correct');
+                }
+
+                // 3. Wait for DOM to render the raw text
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // 4. SMART AUTO-SCALE LOGIC
+                const maxAvailableHeight = 680;
+                const currentHeight = innerContent.scrollHeight;
+
+                if (currentHeight > maxAvailableHeight) {
+                    // Calculate ratio and scale down slightly more (0.98) for breathing room
+                    const scaleFactor = (maxAvailableHeight / currentHeight) * 0.98;
+                    innerContent.style.transform = `scale(${scaleFactor})`;
+                }
+
+                // Wait for the scale transform to visually apply
+                await new Promise(resolve => setTimeout(resolve, 150));
+
+                try {
+                    // 5. Render HTML to Canvas
+                    const canvas = await html2canvas(elementToCapture, {
+                        scale: 1, 
+                        useCORS: true,
+                        backgroundColor: null, 
+                        logging: false
+                    });
+
+                    const dataURL = canvas.toDataURL('image/png');
+                    
+                    // Save for "Download All" feature
+                    generatedImagesArray.push({
+                        url: dataURL,
+                        filename: `quiz_post_${i + 1}.png`
+                    });
+                    
+                    // Add to UI
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+
+                    const img = document.createElement('img');
+                    img.src = dataURL;
+                    
+                    const btn = document.createElement('button');
+                    btn.className = 'download-btn';
+                    btn.innerText = `Download Image ${i + 1}`;
+                    btn.onclick = () => {
+                        const link = document.createElement('a');
+                        link.download = `quiz_post_${i + 1}.png`;
+                        link.href = dataURL;
+                        link.click();
+                    };
+
+                    resultItem.appendChild(img);
+                    resultItem.appendChild(btn);
+                    resultsContainer.appendChild(resultItem);
+                    
+                } catch (captureError) {
+                    console.error("Capture Error:", captureError);
+                    updateStatus(`Error generating image ${i + 1}. Check console.`, "#ef4444");
+                }
+            }
+
+            updateStatus("All images generated successfully! You can download them below or all at once.", "#059669");
+            
+            // Show "Download All" button if there are images
+            if(generatedImagesArray.length > 0) {
+                downloadAllBtn.style.display = 'block';
+            }
+        }
+
+        // Logic for "Download All" Button (Generates a ZIP file)
+        downloadAllBtn.addEventListener('click', function() {
+            updateStatus("Preparing ZIP file, please wait...", "#2563eb");
+            const zip = new JSZip();
+            
+            generatedImagesArray.forEach((image, index) => {
+                const base64Data = image.url.split(',')[1];
+                zip.file(image.filename, base64Data, {base64: true});
+            });
+
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = "all_quizzes.zip";
+                link.click();
+                updateStatus("ZIP file downloaded successfully!", "#059669");
+            }).catch(err => {
+                console.error("ZIP Error:", err);
+                updateStatus("Failed to create ZIP file.", "#ef4444");
+            });
+        });
+    </script>
+</body>
+</html>
