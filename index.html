@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Premium Auto-Scaling Quiz Generator</title>
     
-    <!-- Google Fonts for Bengali: Noto Sans Bengali -->
+    <!-- Google Fonts for Bengali & English -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- html2canvas Library -->
@@ -440,14 +440,19 @@
         .social-section {
             display: flex;
             align-items: center;
-            gap: 15px;
         }
 
-        .social-text {
-            font-size: 22px;
-            font-weight: 700;
-            color: #475569;
-            margin-right: 5px;
+        /* Brand Name Highlight */
+        .brand-name {
+            font-size: 28px;
+            font-weight: 800;
+            margin-right: 18px;
+            padding-right: 18px;
+            border-right: 2px solid #cbd5e1; /* Subtle divider */
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
         }
 
         .social-icons {
@@ -577,9 +582,9 @@
 
             <!-- PREMIUM MARKETING FOOTER CARD -->
             <div class="marketing-banner">
-                <!-- Left: Social Icons with Text -->
+                <!-- Left: App/Brand Name & Social Icons -->
                 <div class="social-section">
-                    <span class="social-text">Follow Us</span>
+                    <span class="brand-name">Play With McQ</span>
                     <div class="social-icons">
                         <!-- Facebook -->
                         <div class="social-icon">
