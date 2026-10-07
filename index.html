@@ -9,11 +9,11 @@
 
 <title>Play With MCQ – ফেসবুক পোস্ট জেনারেটর</title>
 
-<link href="https\://fonts.googleapis.com/css2?family=Hind+Siliguri:wght\@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght\@400;500;600;700&display=swap" rel="stylesheet">
 
-<script src="https\://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-<script src="https\://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
 
@@ -91,7 +91,7 @@ input[type=file]{font:inherit;font-size:14px;max-width:100%}
 
 #toast.on{opacity:1}
 
-#stash{position:fixed;left:-20000px;top:0}
+#stash{position:fixed;left:0;top:0;width:1200px;height:630px;display:none;pointer-events:none;z-index:-1000}
 
 
 
@@ -117,12 +117,11 @@ input[type=file]{font:inherit;font-size:14px;max-width:100%}
 
 .post .stl{font-size:21px;font-weight:500;color:#5b6b91;line-height:1.2;margin-top:-8px;padding-left:6px}
 
-.post .qbar{position:relative;background:#fdecee;border-radius:30px;min-height:90px;margin-left:18px;display:flex;align-items:center;gap:14px;padding:12px 24px 12px 68px;box-shadow:0 6px 16px rgba(255,74,92,.12)}
+.post .qbar{position:relative;background:transparent;border-radius:0;min-height:90px;margin-left:18px;display:flex;align-items:center;gap:14px;padding:12px 24px 12px 68px;box-shadow:none}
 
 .post .qtile{position:absolute;left:-12px;top:50%;margin-top:-32px;width:64px;height:64px;background:#ff4a5c;border-radius:18px 20px 18px 20px;transform:rotate(-3deg);box-shadow:0 5px 12px rgba(255,74,92,.28)}
-.post .qtile:before,.post .qtile:after{content:"";position:absolute;width:24px;height:12px;border-top:3px solid #ff4a5c;top:-9px}
-.post .qtile:before{left:8px;transform:rotate(-28deg);border-radius:100% 0 0 0}
-.post .qtile:after{right:8px;transform:rotate(28deg);border-radius:0 100% 0 0}
+.post .qtile{display:flex;align-items:center;justify-content:center;color:#fff;font-size:38px;font-weight:700;line-height:1;z-index:2}
+.post .qmark{position:absolute;left:-3px;top:-7px;color:#ff4a5c;font-size:34px;font-weight:700;letter-spacing:-9px;line-height:1;z-index:3;transform:rotate(-4deg)}
 
 .post .qtxt{font-weight:700;line-height:1.3;flex:1}
 
@@ -351,7 +350,7 @@ function buildCard(q){
 
    (q.subtitle?'<div class="stl">'+esc(q.subtitle)+'</div>':'')+
 
-   '<div class="qbar"><div class="qtile"></div><div class="qtxt" style="font-size:'+sz[0]+'px">'+esc(questionText)+'</div>'+
+   '<div class="qbar"><div class="qmark">“”</div><div class="qtile">?</div><div class="qtxt" style="font-size:'+sz[0]+'px">'+esc(questionText)+'</div>'+
 
    (q.question_image?'<img class="qimg" src="'+esc(q.question_image)+'" crossorigin="anonymous" alt="">':'')+'</div>'+
 
@@ -519,40 +518,98 @@ window.addEventListener('resize',fit);
 
 
 
-async function snap(q){
+async function waitForImages(root){
 
-  if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  var imgs=Array.prototype.slice.call(root.querySelectorAll('img'));
 
-  var st=$('stash');st.innerHTML='';
-
-  var c=buildCard(q);st.appendChild(c);
-
-  var cv=await html2canvas(c,{scale:1,backgroundColor:'#ffffff',useCORS:true,logging:false,width:1200,height:630});
-
-  st.innerHTML='';
-
-  return await new Promise(function(res){cv.toBlob(res,'image/png');});
+  await Promise.all(imgs.map(function(img){
+    return new Promise(function(resolve){
+      if(img.complete){resolve();return;}
+      var done=false;
+      function finish(){if(done)return;done=true;resolve();}
+      img.addEventListener('load',finish,{once:true});
+      img.addEventListener('error',finish,{once:true});
+      setTimeout(finish,4000);
+    });
+  }));
 
 }
 
+async function snap(q){
+  if(typeof html2canvas!=='function'){
+    throw new Error('html2canvas লোড হয়নি। Internet connection বা CDN check করুন।');
+  }
+
+  if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
+
+  var st=$('stash');
+  st.innerHTML='';
+  st.style.cssText='position:fixed;left:0;top:0;width:1200px;height:630px;z-index:2147483647;pointer-events:none;display:block;visibility:visible;opacity:1;overflow:hidden;';
+
+  var c=buildCard(q);
+  c.style.position='relative';
+  c.style.left='0';
+  c.style.top='0';
+  c.style.transform='none';
+  st.appendChild(c);
+
+  await waitForImages(c);
+  c.querySelectorAll('img').forEach(function(img){
+    if(!img.complete || img.naturalWidth===0) img.remove();
+  });
+
+  await new Promise(function(resolve){
+    requestAnimationFrame(function(){requestAnimationFrame(resolve);});
+  });
+
+  try{
+    var cv=await html2canvas(c,{
+      scale:1,
+      backgroundColor:'#ffffff',
+      useCORS:true,
+      allowTaint:false,
+      imageTimeout:3000,
+      logging:false,
+      width:1200,
+      height:630,
+      scrollX:0,
+      scrollY:0,
+      windowWidth:1200,
+      windowHeight:630,
+      removeContainer:true
+    });
+
+    if(!cv || !cv.width || !cv.height) throw new Error('Canvas তৈরি হয়নি');
+
+    return await new Promise(function(resolve,reject){
+      cv.toBlob(function(blob){
+        if(blob && blob.size>0) resolve(blob);
+        else reject(new Error('PNG blob তৈরি করা যায়নি'));
+      },'image/png',1);
+    });
+  }finally{
+    st.innerHTML='';
+    st.style.display='none';
+  }
+}
+
 async function saveFile(name,blob){
+  if(!blob) throw new Error('ফাইল তৈরি হয়নি');
 
-  if(dl){
+  if(dl){
+    try{await dl.save({filename:name,data:blob});return true;}
+    catch(e){console.warn('Native download failed, using browser download:',e);}
+  }
 
-    try{await dl.save({filename:name,data:blob});return true;}
-
-    catch(e){if(e&&e.code==='declined')return false;}
-
-  }
-
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
-
-  document.body.appendChild(a);a.click();a.remove();
-
-  setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
-
-  return true;
-
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download=name;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){a.remove();URL.revokeObjectURL(url);},1000);
+  return true;
 }
 
 function fname(i){return 'mcq-'+String(i+1).padStart(2,'0')+(S.mode==='with'?'-answer':'')+'.png';}
@@ -563,7 +620,7 @@ async function single(i,btn){
 
   try{var b=await snap(S.data[i]);if(await saveFile(fname(i),b))toast('ছবি তৈরি হয়েছে');}
 
-  catch(e){toast('ছবি তৈরি করা যায়নি। আবার চেষ্টা করুন।');}
+  catch(e){console.error('PNG generation failed:',e);toast('ছবি তৈরি করা যায়নি। আবার চেষ্টা করুন।');}
 
   btn.disabled=false;
 
@@ -589,7 +646,7 @@ $('zipBtn').addEventListener('click',async function(){
 
     if(await saveFile('mcq-cards'+(S.mode==='with'?'-answer':'')+'.zip',blob))toast('ZIP তৈরি হয়েছে');
 
-  }catch(e){toast('ZIP তৈরি করা যায়নি। আবার চেষ্টা করুন।');}
+  }catch(e){console.error('ZIP generation failed:',e);toast('ZIP তৈরি করা যায়নি। আবার চেষ্টা করুন।');}
 
   btn.disabled=false;
 
