@@ -18,7 +18,9 @@
 <style>
 :root{--navy:#0f1f55;--blue:#4a9bff;--red:#ff4a5c;--bg:#f3f6fb;--panel:#fff;--line:#dbe5f3;--muted:#5b6b91}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1426;--panel:#162040;--line:#2a3860;--muted:#a3b2d6;--navy:#e8eeff}}
-:root[data-theme="dark"]{--bg:#0d1426;--panel:#162040;--line:#2a3860;--muted:#a3b2d6;--navy:#e8eeff}
+:root[data-theme="dark"]{--bg:#0d1426;--panel:#162040;--line:#2a3860;--muted:#a3b2d6;--navy:#e8eeff;color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--navy);font-family:"Hind Siliguri","Noto Sans Bengali",sans-serif;padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));line-height:1.5}
 .wrap{max-width:1560px;margin:0 auto}
@@ -140,6 +142,7 @@ body.v-clean .layout{grid-template-columns:minmax(0,1fr)}
     <button class="btn alt sm" id="undoBtn" type="button" disabled>↶ আনডু</button>
     <button class="btn alt sm" id="redoBtn" type="button" disabled>↷ রিডু</button>
     <button class="btn sm" id="rndBtn" type="button">🎲 র‍্যান্ডম ডিজাইন</button>
+    <button class="btn alt sm" id="themeBtn" type="button" title="লাইট / ডার্ক মোড বদলান">🌓 অটো</button>
     <button class="btn alt sm" id="saveProj" type="button">প্রজেক্ট সেভ (ফাইল)</button>
     <label class="btn alt sm" style="cursor:pointer">প্রজেক্ট লোড<input type="file" id="projFile" accept=".json,application/json" hidden></label>
     <button class="btn alt sm" id="newBtn" type="button">নতুন প্রজেক্ট</button>
@@ -1450,6 +1453,21 @@ document.querySelectorAll('input[name=app]').forEach(function(r){r.addEventListe
   document.body.classList.remove('v-clean');setApp(r.value);
 });});
 $('fmtSel').addEventListener('change',function(){S.fmt=this.value;});
+
+/* ---------- light / dark mode ---------- */
+var UIT=['auto','light','dark'],UIL={auto:'🌓 অটো (ডিভাইস অনুযায়ী)',light:'☀️ লাইট মোড',dark:'🌙 ডার্ক মোড'},uiMode='auto';
+try{var sm=localStorage.getItem('mcq-ui-theme');if(UIT.indexOf(sm)>=0)uiMode=sm;}catch(e){}
+function applyUI(){
+  var r=document.documentElement;
+  if(uiMode==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',uiMode);
+  $('themeBtn').textContent=UIL[uiMode];
+}
+$('themeBtn').addEventListener('click',function(){
+  uiMode=UIT[(UIT.indexOf(uiMode)+1)%3];
+  try{localStorage.setItem('mcq-ui-theme',uiMode);}catch(e){}
+  applyUI();toast(UIL[uiMode]);
+});
+applyUI();
 
 /* init */
 S.logo=makeDefaultLogo();
