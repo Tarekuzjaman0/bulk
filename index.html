@@ -92,6 +92,22 @@ body.over .drop{border-color:var(--blue);background:rgba(74,155,255,.08)}
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:var(--bg);padding:9px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center;z-index:50}
 #toast.on{opacity:1}
 #stash{position:fixed;left:0;top:0;display:none;pointer-events:none}
+[hidden]{display:none!important}
+.rscroll{overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:10px;margin:8px 0}
+.rtab{border-collapse:collapse;font-size:12px}
+.rtab td{border:1px solid var(--line);padding:2px;vertical-align:top}
+.rtab input{width:96px;font:inherit;font-size:12px;padding:3px 4px;border-radius:6px}
+.rtab input.sm{width:64px}
+.rtab .x{border:0;background:transparent;color:var(--red);cursor:pointer;font-size:14px}
+#cleanBox{display:none}
+body.v-clean #cleanBox{display:block}
+body.v-clean #prevHead,body.v-clean #list,body.v-clean .side{display:none}
+body.v-clean .layout{grid-template-columns:minmax(0,1fr)}
+.crow{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px;margin-top:8px;flex-wrap:wrap}
+.crow img{width:64px;height:64px;object-fit:cover;border-radius:8px;background:#ddd}
+.crow .inf{flex:1;min-width:180px;font-size:13px}
+.tag{display:inline-block;background:rgba(255,74,92,.14);color:var(--red);border-radius:999px;padding:0 8px;margin:2px 4px 2px 0;font-size:12px}
+.tag.ok{background:rgba(60,193,90,.18);color:#1f9d46}
 
 /* ===== Post card ===== */
 .post{position:relative;overflow:hidden;background:var(--cbg);font-family:"Hind Siliguri","Noto Sans Bengali",sans-serif;color:var(--tx)}
@@ -100,6 +116,7 @@ body.over .drop{border-color:var(--blue);background:rgba(74,155,255,.08)}
 .post .it>img{width:100%;height:100%;display:block;object-fit:contain}
 .post .z1{z-index:1}.post .z3{z-index:3}
 .post .tx{z-index:2;line-height:1.25}
+.post .z0{z-index:0}
 .post .gl{display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;white-space:nowrap;font-family:"Hind Siliguri","Noto Sans Bengali","Segoe UI","Times New Roman",serif}
 .post .qbar{position:relative;display:flex;align-items:center;gap:14px;min-height:90px}
 .post .qtxt{font-weight:700;line-height:1.3;flex:1;color:var(--tx)}
@@ -128,9 +145,15 @@ body.over .drop{border-color:var(--blue);background:rgba(74,155,255,.08)}
     <button class="btn alt sm" id="newBtn" type="button">নতুন প্রজেক্ট</button>
   </div>
 
+  <div class="chips" id="appTabs" role="radiogroup" aria-label="অ্যাপ মোড" style="margin-bottom:12px">
+    <label><input type="radio" name="app" value="mcq" checked><span>📝 MCQ কার্ড</span></label>
+    <label><input type="radio" name="app" value="promo"><span>📣 প্রচারণা পোস্ট</span></label>
+    <label><input type="radio" name="app" value="routine"><span>🗓️ রুটিন জেনারেটর</span></label>
+    <label><input type="radio" name="app" value="clean"><span>🧹 ইমেজ মেটাডাটা ক্লিনার</span></label>
+  </div>
   <div class="layout">
   <div class="side">
-    <details class="panel" open>
+    <details class="panel" open data-app="mcq">
       <summary>১. প্রশ্ন ব্যাংক ও এডিটর (<span id="qN">0</span>টি)</summary>
       <div class="row">
         <input type="file" id="jsonFile" accept=".json,application/json" aria-label="JSON ফাইল বেছে নাও">
@@ -154,28 +177,57 @@ body.over .drop{border-color:var(--blue);background:rgba(74,155,255,.08)}
       </details>
     </details>
 
+    <details class="panel" open data-app="promo">
+      <summary>১. প্রচারণার লেখা</summary>
+      <div class="ctl">
+        <label class="full">বড় হেডিং<input type="text" id="pHead"></label>
+        <label class="full">হাইলাইট বার<input type="text" id="pSub"></label>
+        <label class="full">প্রাইস / অফার ব্যানার<input type="text" id="pPrice"></label>
+        <label class="full">লিস্টের শিরোনাম<input type="text" id="pLT"></label>
+        <label class="full">লিস্ট আইটেম (প্রতি লাইনে একটি)<textarea id="pItems" rows="7"></textarea></label>
+        <label class="full">নিচের CTA লেখা (খালি রাখলে দেখাবে না)<input type="text" id="pFoot"></label>
+      </div>
+    </details>
+
+    <details class="panel" open data-app="routine">
+      <summary>১. রুটিনের তথ্য</summary>
+      <div class="ctl">
+        <label class="full">রুটিনের শিরোনাম<input type="text" id="rTitle"></label>
+        <label>ব্র্যান্ড (প্রথম অংশ)<input type="text" id="rbA"></label>
+        <label>ব্র্যান্ড (দ্বিতীয় অংশ)<input type="text" id="rbB"></label>
+      </div>
+      <div class="h3">টেবিল (ঘরে লিখুন, ✕ দিয়ে সারি/কলাম মুছুন)</div>
+      <div class="rscroll" id="rtabBox"></div>
+      <div class="row"><button class="btn alt sm" id="rAddRow" type="button">+ সারি</button><button class="btn alt sm" id="rAddCol" type="button">+ কলাম</button><button class="btn alt sm" id="rClear" type="button">সব ঘর খালি</button><button class="btn alt sm" id="rReset" type="button">নমুনা রুটিন</button></div>
+    </details>
+
     <details class="panel" open>
       <summary>২. কার্ড সেটিংস</summary>
-      <div class="chips" role="radiogroup" aria-label="কার্ডের ধরন">
+      <div class="chips" role="radiogroup" aria-label="কার্ডের ধরন" data-app="mcq">
         <label><input type="radio" name="mode" value="without" checked><span>উত্তর ছাড়া</span></label>
         <label><input type="radio" name="mode" value="with"><span>উত্তর সহ</span></label>
       </div>
       <div class="ctl">
         <label>কার্ডের সাইজ<select id="sizeSel"></select></label>
         <label>ফন্ট (সব লেখা)<select id="fontSel"></select></label>
-        <label class="full">ব্যাকগ্রাউন্ড মোড<select id="cycSel"><option value="one">সব কার্ডে একই ব্যাকগ্রাউন্ড</option><option value="cycle">প্রতি কার্ডে আলাদা (থিম ঘুরিয়ে)</option></select></label>
-        <label class="full">লেখার স্কেল (অটো সাইজে) <b id="kV">1</b><input type="range" id="kR" min="0.6" max="2" step="0.05" value="1"></label>
-        <label class="full">শিরোনাম (JSON এ না থাকলে সব কার্ডে)<input type="text" id="gT" placeholder="যেমন: গণিত MCQ"></label>
-        <label class="full">উপশিরোনাম<input type="text" id="gS"></label>
+        <label class="full">ডাউনলোড ফরম্যাট (সব ছবি মেটাডাটা-মুক্ত)<select id="fmtSel"><option value="png">PNG</option><option value="jpg">JPG (ছোট ফাইল)</option></select></label>
+        <label class="full" data-app="mcq">ব্যাকগ্রাউন্ড মোড<select id="cycSel"><option value="one">সব কার্ডে একই ব্যাকগ্রাউন্ড</option><option value="cycle">প্রতি কার্ডে আলাদা (থিম ঘুরিয়ে)</option></select></label>
+        <label class="full" data-app="mcq">লেখার স্কেল (অটো সাইজে) <b id="kV">1</b><input type="range" id="kR" min="0.6" max="2" step="0.05" value="1"></label>
+        <label class="full" data-app="mcq">শিরোনাম (JSON এ না থাকলে সব কার্ডে)<input type="text" id="gT" placeholder="যেমন: গণিত MCQ"></label>
+        <label class="full" data-app="mcq">উপশিরোনাম<input type="text" id="gS"></label>
       </div>
     </details>
 
     <details class="panel" open>
       <summary>৩. রেডিমেড টেমপ্লেট</summary>
-      <div class="h3">পুরো ডিজাইন সেট (থিম + লেআউট + স্টাইল + শেপ)</div><div class="tpl" id="tDS"></div>
-      <div class="h3">লেআউট</div><div class="tpl" id="tLY"></div>
-      <div class="h3">প্রশ্নের স্টাইল</div><div class="tpl" id="tQT"></div>
-      <div class="h3">অপশনের স্টাইল</div><div class="tpl" id="tOT"></div>
+      <div data-app="mcq">
+        <div class="h3">পুরো ডিজাইন সেট (থিম + লেআউট + স্টাইল + শেপ)</div><div class="tpl" id="tDS"></div>
+        <div class="h3">লেআউট</div><div class="tpl" id="tLY"></div>
+        <div class="h3">প্রশ্নের স্টাইল</div><div class="tpl" id="tQT"></div>
+        <div class="h3">অপশনের স্টাইল</div><div class="tpl" id="tOT"></div>
+      </div>
+      <div data-app="promo"><div class="h3">প্রচারণা ডিজাইন (রং + ব্যাকগ্রাউন্ড)</div><div class="tpl" id="tPR"></div></div>
+      <div data-app="routine"><div class="h3">রুটিন টেবিলের স্টাইল</div><div class="tpl" id="tRT"></div></div>
     </details>
 
     <details class="panel" open>
@@ -216,14 +268,25 @@ body.over .drop{border-color:var(--blue);background:rgba(74,155,255,.08)}
       <div class="row" style="margin-top:8px">
         <button class="btn alt sm" id="dupBtn" type="button">নকল</button>
         <button class="btn red sm" id="delBtn" type="button">মুছুন</button>
-        <button class="btn alt sm" id="autoFs" type="button">প্রশ্ন/অপশনের আকার অটো</button>
+        <button class="btn alt sm" id="autoFs" type="button" data-app="mcq">প্রশ্ন/অপশনের আকার অটো</button>
       </div>
       <div class="ctl" id="ctl"></div>
     </details>
   </div>
 
   <div class="main">
-    <section class="panel">
+    <section class="panel" id="cleanBox">
+      <h2 style="font-size:18px">🧹 ইমেজ মেটাডাটা ক্লিনার</h2>
+      <p class="hint">ছবির ভেতরের লুকানো তথ্য (EXIF, XMP, IPTC, C2PA / Content Credentials, PNG টেক্সট চাঙ্ক) মুছে নতুন ক্লিন ছবি বানায়। সব কাজ আপনার ব্রাউজারেই হয়, ছবি কোথাও আপলোড হয় না। এই অ্যাপে এক্সপোর্ট করা সব ছবি এবং আপলোড করা লোগো/ব্যাকগ্রাউন্ড/প্রশ্নের ছবিও একইভাবে মেটাডাটা-মুক্ত হয়।</p>
+      <div class="row">
+        <input type="file" id="cleanFile" accept="image/*" multiple aria-label="ক্লিন করার ছবি">
+        <select id="cleanFmt" style="width:auto" aria-label="আউটপুট ফরম্যাট"><option value="png">PNG</option><option value="jpg">JPG</option></select>
+        <button class="btn red sm" id="cleanZip" type="button">সব ক্লিন করে ZIP</button>
+      </div>
+      <p class="hint">মনে রাখবেন: এটি শুধু ফাইলের ভেতরের মেটাডাটা মুছে দেয়। ছবির পিক্সেলে মেশানো অদৃশ্য ওয়াটারমার্ক বা প্ল্যাটফর্মের নিজস্ব শনাক্তকরণ এতে বদলায় না, তাই “এআই লেবেল আসবে না” এমন নিশ্চয়তা নেই। প্ল্যাটফর্মের এআই-কনটেন্ট ঘোষণার নিয়ম মানা আপনার দায়িত্ব।</p>
+      <div id="cleanList"></div>
+    </section>
+    <section class="panel" id="prevHead">
       <div class="row" style="justify-content:space-between">
         <h2 style="font-size:16px">প্রিভিউ</h2>
         <button class="btn red" id="zipBtn" type="button">সব ছবি ZIP করে ডাউনলোড</button>
@@ -252,6 +315,7 @@ var IC=[
 ['star','তারা','Star','cls','<polygon points="50,4 61,38 97,38 68,59 79,94 50,73 21,94 32,59 3,38 39,38" fill="@"/>'],
 ['dia','ডায়মন্ড','Diamond','cls','<rect x="15" y="15" width="70" height="70" rx="12" fill="@" transform="rotate(45 50 50)"/>'],
 ['plus','প্লাস','Plus','cls','<rect x="38" y="4" width="24" height="92" rx="12" fill="@"/><rect x="4" y="38" width="92" height="24" rx="12" fill="@"/>'],
+['dgrid','ডট গ্রিড','Dot grid','cls',(function(){var a=[];for(var i=0;i<5;i++)for(var j=0;j<5;j++)a.push([12+i*19,12+j*19]);return dots(a,5);})()],
 /* geometry */
 ['cube','ঘনক','Cube','geo',s('<path d="M50 8L86 28V72L50 92L14 72V28z"/><path d="M14 28L50 48L86 28M50 48V92"/>')],
 ['cyl','সিলিন্ডার','Cylinder','geo',s('<ellipse cx="50" cy="22" rx="32" ry="12"/><path d="M18 22v56c0 7 14 12 32 12s32-5 32-12V22"/>')],
@@ -407,12 +471,13 @@ Dk('dusk','গোধূলি','linear-gradient(135deg,#1e3a8a,#c026d3 55%,#fb92
 Dk('mango','আম','linear-gradient(135deg,#f59e0b,#ef4444)','#b45309',['#ffffff','#fef08a','#fed7aa','#ffffff','#fecaca','#fde047','#ffedd5'],.5),
 Dk('lagoon','লেগুন','linear-gradient(135deg,#06b6d4,#22c55e)','#0e7490',['#ffffff','#cffafe','#fef08a','#a7f3d0','#ffffff','#bae6fd','#dcfce7'],.45),
 Dk('pinkpop','পিংক পপ','linear-gradient(135deg,#f472b6,#8b5cf6)','#a21caf',['#ffffff','#fde68a','#fbcfe8','#ddd6fe','#ffffff','#f5d0fe','#fef08a'],.5),
-Dk('bd','বাংলাদেশ','radial-gradient(circle at 48% 50%,#f42a41 0,#f42a41 130px,transparent 131px),#006a4e','#00573f',['#f42a41','#ffffff','#fde68a','#86efac','#ffffff','#f87171','#bbf7d0'],.45)
+Dk('bd','বাংলাদেশ','radial-gradient(circle at 48% 50%,#f42a41 0,#f42a41 130px,transparent 131px),#006a4e','#00573f',['#f42a41','#ffffff','#fde68a','#86efac','#ffffff','#f87171','#bbf7d0'],.45),
+Lt('apricot','এপ্রিকট','linear-gradient(135deg,#fdebd2,#fbdcb6)','#fde6c4',['#d9a441','#c58b2a','#e8b96a','#0f766e','#f0c987','#b7791f','#5eead4'],{tx:'#134e4a',sub:'#3f7a74',op:.8})
 ];
 var THM={};TH.forEach(function(t){THM[t.id]=t;});
 var FONTS=[['Hind Siliguri','হিন্দ শিলিগুড়ি'],['Noto Sans Bengali','নোটো সান্স'],['Noto Serif Bengali','নোটো সেরিফ'],['Tiro Bangla','তিরো বাংলা'],['Baloo Da 2','বালু'],['Anek Bangla','অনেক বাংলা'],['Mukta','মুক্তা'],['Atma','আত্মা'],['Galada','গালাদা']];
 var FONTOPT=[['','অটো (গ্লোবাল)']].concat(FONTS);
-var SIZES=[['1200x630','ফেসবুক পোস্ট ১২০০×৬৩০'],['1080x1080','স্কয়ার ১০৮০×১০৮০'],['1080x1350','পোর্ট্রেট ১০৮০×১৩৫০'],['1080x1920','স্টোরি ১০৮০×১৯২০'],['1280x720','HD ১২৮০×৭২০']];
+var SIZES=[['1200x630','ফেসবুক পোস্ট ১২০০×৬৩০'],['1600x1200','রুটিন ১৬০০×১২০০'],['1080x1080','স্কয়ার ১০৮০×১০৮০'],['1080x1350','পোর্ট্রেট ১০৮০×১৩৫০'],['1080x1920','স্টোরি ১০৮০×১৯২০'],['1280x720','HD ১২৮০×৭২০']];
 var LAYS=[['left','বামে লেখা, ডানে লোগো'],['right','ডানে লেখা, বামে লোগো'],['center','সেন্টার'],['wide','ফুল প্রস্থ'],['list','১ কলাম লিস্ট'],['top','উপরে বড় প্রশ্ন']];
 var AL=[['left','বামে'],['center','মাঝে'],['right','ডানে']];
 var OBASE={r:52,bdW:2,bg:null,bd:null,sh:1,bsh:'circle',bbg:null,bcol:null,col:null,okBg:null,okBd:null,okCol:null,mark:1,lab:'bn'};
@@ -450,7 +515,7 @@ var DSETS=[
 ['বায়োলজি','forest','left','glass','glass',['dna','leaf','cell','heart','micro']],
 ['নিয়ন কুইজ','neon','center','glass','neon',['star','bolt','target','star','bolt']],
 ['ক্যান্ডি কিডস','candy','left','pill','bubble',['star','cap','bag','palette','bell']],
-['ডার্ক প্রো','midnight','wide','b#2563eb','glass',['code','chip','atom','globe','bulb']],
+['ডার্ক প্রো','midnight','wide','#2563eb','glass',['code','chip','atom','globe','bulb']],
 ['ক্লিন সাদা','classic','left','plain','capsule',['circle','blob','ring','tri']],
 ['গোল্ড অনার','gold','center','white','pastel',['trophy','medal','star','bell','cap']],
 ['আইসিটি','matrix','wide','glass','neon',['laptop','code','chip','ai','bin']],
@@ -463,8 +528,49 @@ var QKINDS=[
 ['fill','শূন্যস্থান পূরণ',{question:'শূন্যস্থানে কোনটি বসবে? ______',answer1:'',answer2:'',answer3:'',answer4:'',correct:'a'}],
 ['neg','কোনটি সঠিক নয়?',{question:'নিচের কোনটি সঠিক নয়?',answer1:'',answer2:'',answer3:'',answer4:'',correct:'a'}]
 ];
+var HD='';
+var CD={pfr:{col:'#0f766e'},ph:{col:'#0f766e'},ps:{col:'#134e4a',bg:'#5eead4'},pp:{col:'#ffffff',bg:'#0f766e',bd:'#99f6e4'},pl:{col:'#1f2937'},pi:{col:'#134e4a',bg:'#ffffff',bbg:'#0f766e',bcol:'#86efac'},pf:{col:'#ffffff',bg:'#dc2626'},rtl:{col:'#1e2a9b',ulc:'#e11d48'},rb1:{ca:'#1e2a9b',cb:'#dc2626'},rb2:{ca:'#1e2a9b',cb:'#dc2626'},rt:{hdrBg:'#fde047',dayBg:'#fbcfe8',batchBg:'#bbf7d0',cellBg:'#ffffff',bd:'#1d2bd8',col:'#1e2a9b',hcol:'#1e2a9b',dcol:'#1e2a9b'}};
+var APPSEL={
+  mcq:[['q','প্রশ্ন'],['opts','অপশন (ক খ গ ঘ)'],['title','শিরোনাম'],['sub','উপশিরোনাম'],['logo','লোগো']],
+  promo:[['ph','হেডিং'],['ps','হাইলাইট বার'],['pp','প্রাইস ব্যানার'],['pl','লিস্টের শিরোনাম'],['pi','লিস্ট'],['pf','CTA বার'],['pfr','ফ্রেম'],['logo','লোগো']],
+  routine:[['rtl','রুটিনের শিরোনাম'],['rb1','ব্র্যান্ড (উপরে)'],['rt','রুটিন টেবিল'],['rb2','ব্র্যান্ড (নিচে)'],['logo','লোগো']]
+};
+var APPK={mcq:['title','sub','q','opts'],promo:['pfr','ph','ps','pp','pl','pi','pf'],routine:['rtl','rb1','rt','rb2']};
+function defPromo(){return {head:'HSC 27 & 28',sub:'ICT ফুল কোর্স ফি',price:'মাত্র ৫০০ টাকা',lt:'কোর্সে কি কি থাকছে-',items:['১। বেসিক টু এডভান্স আলোচনা।','২। অধ্যায় ভিত্তিক CQ MCQ সমাধান।','৩। বিগত সালের প্রশ্ন সমাধান।','৪। আনলিমিটেড এক্সাম MCQ app থেকে।','৫। দাগানো বই এর pdf','৬। ডাউট প্রবলেম সলভ'],foot:'এখনই ভর্তি হোন!'};}
+function defRoutine(){
+  var K='কিশোর ব্যাংকিং/ব্যবস্থাপনা ও বিপণন',A='কৃষি শিক্ষা/অর্থনীতি',V='ভার্সিটি ভর্তি প্রশ্ন ব্যাংক সলভ',B='ব্যবসায় সংগঠন',H='হিসাব বিজ্ঞান',b='এইচএসসি-২০২৭';
+  return {title:'এইচএসসি ২০২৭ ব্যাচের দৈনিক পড়ার রুটিন',brandA:'Play with',brandB:'ICT',dayLab:'বার',batchLab:'ব্যাচ',
+    slots:[{l:'ভোর',t:'৬.০০-৭.০০'},{l:'সকাল',t:'৭.৩০-৮.৩০'},{l:'বিকাল',t:'৪.৩০-৫.৩০'},{l:'সন্ধ্যা',t:'৭.০০-৮.০০'},{l:'রাত',t:'৯.০০-১০.০০'},{l:'রাত',t:'১০.০০-১১.০০'},{l:'রাত',t:'১১.০০-১২.০০'}],
+    rows:[
+      {d:'শনিবার',b:b,c:['ICT',B+'-১','বাংলা-২',H+'-১','ইংরেজি-১',K+'-১',A+'-১']},
+      {d:'রবিবার',b:b,c:['ইংরেজি-১',K+'-১','বাংলা-১',B+'-১',A+'-১',V,H+'-১']},
+      {d:'সোমবার',b:b,c:[A+'-১','ICT',H+'-১','ইংরেজি-২',K+'-১','বাংলা-১',B+'-১']},
+      {d:'মঙ্গলবার',b:b,c:['বাংলা-২',B+'-২','ইংরেজি-২',H+'-২','–',A+'-১',K+'-২']},
+      {d:'বুধবার',b:b,c:[K+'-২','ICT',H+'-২','ইংরেজি-১ (অতি স্যাম্পল)',B+'-২','বাংলা-১',A+'-২']},
+      {d:'বৃহস্পতিবার',b:b,c:[A+'-২','বাংলা-২',K+'-২',B+'-২',H+'-২','ICT',V]},
+      {d:'শুক্রবার',b:'এইচএসসি-২৬/২৭',c:['ICT','বাংলা-১',H+'-২',B+'-২',A+'-২','ইংরেজি-২',V]}
+    ]};
+}
+function ppr(n,bg,main,soft,dark,txt){return [n,bg,{pfr:{col:main},ph:{col:main},ps:{col:dark,bg:soft},pp:{col:'#ffffff',bg:main,bd:soft},pl:{col:txt},pi:{col:dark,bg:'#ffffff',bbg:main,bcol:'#ffffff'},pf:{col:'#ffffff',bg:main}}];}
+var PPR=[
+  ppr('টিল ক্রিম (ছবির মতো)','apricot','#0f766e','#5eead4','#134e4a','#1f2937'),
+  ppr('নীল','cloud','#1d4ed8','#bfdbfe','#1e3a8a','#0f1f55'),
+  ppr('কমলা','sunrise','#c2410c','#fed7aa','#7c2d12','#431407'),
+  ppr('বেগুনি','lilac','#7e22ce','#e9d5ff','#4a044e','#3b0764'),
+  ppr('সবুজ','spring','#15803d','#bbf7d0','#14532d','#052e16'),
+  ppr('গোলাপি','rose','#be185d','#fbcfe8','#831843','#500724'),
+  ['ডার্ক গোল্ড','midnight',{pfr:{col:'#fbbf24'},ph:{col:'#fbbf24'},ps:{col:'#fde68a',bg:'#1e293b'},pp:{col:'#0f172a',bg:'#fbbf24',bd:'#fde68a'},pl:{col:'#e5e7eb'},pi:{col:'#ffffff',bg:'rgba(255,255,255,.1)',bbg:'#fbbf24',bcol:'#0f172a'},pf:{col:'#0f172a',bg:'#fbbf24'}}]
+];
+var RPR=[
+  ['হাতে-লেখা (ছবির মতো)',{hdrBg:null,dayBg:null,batchBg:null,cellBg:null,bd:null,col:null,hcol:null,dcol:null,bdW:3,ff:'Atma'}],
+  ['ব্লু মডার্ন',{hdrBg:'#2563eb',hcol:'#ffffff',dayBg:'#dbeafe',dcol:'#1e3a8a',batchBg:'#e0e7ff',cellBg:'#ffffff',col:'#0f1f55',bd:'#93c5fd',bdW:2,ff:'Hind Siliguri'}],
+  ['গ্রিন',{hdrBg:'#16a34a',hcol:'#ffffff',dayBg:'#dcfce7',dcol:'#14532d',batchBg:'#f0fdf4',cellBg:'#ffffff',col:'#052e16',bd:'#86efac',bdW:2,ff:'Hind Siliguri'}],
+  ['অরেঞ্জ',{hdrBg:'#f97316',hcol:'#ffffff',dayBg:'#ffedd5',dcol:'#7c2d12',batchBg:'#fef3c7',cellBg:'#ffffff',col:'#431407',bd:'#fdba74',bdW:2,ff:'Hind Siliguri'}],
+  ['ডার্ক',{hdrBg:'#facc15',hcol:'#0f172a',dayBg:'#1e293b',dcol:'#ffffff',batchBg:'#334155',cellBg:'#0f172a',col:'#e5e7eb',bd:'#475569',bdW:2,ff:'Hind Siliguri'}],
+  ['মিনিমাল',{hdrBg:'#f1f5f9',hcol:'#0f172a',dayBg:'#f8fafc',dcol:'#0f172a',batchBg:'#f8fafc',cellBg:'#ffffff',col:'#1f2937',bd:'#cbd5e1',bdW:1,ff:'Hind Siliguri'}]
+];
 var TXI=['title','sub','q','opts'];
-var S={data:[],qi:0,mode:'without',bg:'classic',W:1200,H:630,font:'Hind Siliguri',k:1,cyc:'one',lay:'left',custom:{c1:'#6d28d9',c2:'#06b6d4',ang:135,img:null,tone:'dark'},sel:'q',logo:null,logoAR:1,gT:'',gS:'',cat:'all',nid:0,items:{},shapes:[],texts:[]};
+var S={app:'mcq',promo:null,routine:null,store:{},fmt:'png',data:[],qi:0,mode:'without',bg:'classic',W:1200,H:630,font:'Hind Siliguri',k:1,cyc:'one',lay:'left',custom:{c1:'#6d28d9',c2:'#06b6d4',ang:135,img:null,tone:'dark'},sel:'q',logo:null,logoAR:1,gT:'',gS:'',cat:'all',nid:0,items:{},shapes:[],texts:[]};
 var SAMPLE=[{title:"",subtitle:"",question:"1. কোনটি অংশীদারি প্রতিষ্ঠানের বা ব্যবসায়ের মূল ভিত্তি?",question_image:"",answer1:"মুনাফা বণ্টন",answer1_image:"",answer2:"ব্যবসায় পরিচালনা",answer2_image:"",answer3:"মূলধন বিনিয়োগ",answer3_image:"",answer4:"চুক্তি",answer4_image:"",correct:"d"}];
 var dl=null;
 try{ if(window.claude&&claude.use){ claude.use('downloads').then(function(d){dl=d;}).catch(function(){}); } }catch(e){}
@@ -534,7 +640,18 @@ function mkItems(){return{
   title:{x:0,y:0,w:800,rot:0,on:1,fs:30,col:null,wt:1,al:'left',ff:''},
   sub:{x:0,y:0,w:800,rot:0,on:1,fs:21,col:null,wt:0,al:'left',ff:''},
   q:{x:0,y:0,w:800,rot:0,on:1,fs:null,col:null,wt:1,al:'left',ff:'',num:0,bar:1,barBg:null,barBd:null,barBdW:null,barR:26,pad:24},
-  opts:{x:0,y:0,w:800,rot:0,on:1,cols:2,gap:14,h:96,r:52,bdW:2,bg:null,bd:null,fs:null,col:null,ff:'',sh:1,bsh:'circle',bs:72,bfs:38,bbg:null,bcol:null,lab:'bn',okBg:null,okBd:null,okCol:null,mark:1}
+  opts:{x:0,y:0,w:800,rot:0,on:1,cols:2,gap:14,h:96,r:52,bdW:2,bg:null,bd:null,fs:null,col:null,ff:'',sh:1,bsh:'circle',bs:72,bfs:38,bbg:null,bcol:null,lab:'bn',okBg:null,okBd:null,okCol:null,mark:1},
+  pfr:{x:0,y:0,w:560,h:335,rot:0,on:1,col:null,bdW:3,r:6},
+  ph:{x:0,y:0,w:540,rot:0,on:1,fs:80,col:null,wt:1,al:'center',ff:''},
+  ps:{x:0,y:0,w:510,rot:0,on:1,fs:50,col:null,bg:null,wt:1,al:'center',pad:10,rad:0,ff:''},
+  pp:{x:0,y:0,w:480,rot:0,on:1,fs:56,col:null,bg:null,bd:null,bdW:3,bds:'dotted',wt:1,al:'center',pad:14,rad:4,ff:''},
+  pl:{x:0,y:0,w:600,rot:0,on:1,fs:46,col:null,wt:0,al:'center',ff:''},
+  pi:{x:0,y:0,w:940,rot:0,on:1,cols:2,gap:18,h:108,r:22,fs:33,col:null,bg:null,bbg:null,bcol:null,bw:90,mk:'✓',ff:'',sh:1,wt:1},
+  pf:{x:0,y:0,w:600,rot:0,on:1,fs:38,col:null,bg:null,wt:1,al:'center',pad:12,rad:40,ff:''},
+  rtl:{x:0,y:0,w:1400,rot:0,on:1,fs:64,col:null,wt:1,al:'center',ul:1,ulc:null,ff:'Atma'},
+  rb1:{x:0,y:0,w:1400,rot:0,on:1,fs:72,ca:null,cb:null,deco:1,ff:'Atma'},
+  rb2:{x:0,y:0,w:1400,rot:0,on:1,fs:64,ca:null,cb:null,deco:1,ff:'Atma'},
+  rt:{x:0,y:0,w:1540,rot:0,on:1,fs:26,hfs:30,rh:100,hdrBg:null,dayBg:null,batchBg:null,cellBg:null,bd:null,bdW:3,col:null,hcol:null,dcol:null,wt:0,al:'center',ff:'Atma',batch:1}
 };}
 function applyLayout(id){
   S.lay=id;var W=S.W,H=S.H,I=S.items,wide=W>=H*1.25,k=wide?1:(H/W>1.6?1.5:1.25);
@@ -565,8 +682,10 @@ function scatter(l){
   l.forEach(function(a){S.shapes.push({id:'i'+(++S.nid),k:a[0],x:Math.round(a[1]*S.W),y:Math.round(a[2]*S.H),size:Math.round(Math.max(40,a[3]*S.W)),rot:a[4]||0,col:null,op:null,flip:0,pi:(S.nid-1)%7});});
 }
 function resetItems(){
-  var lo=S.items.logo?S.items.logo.on:true;
-  S.items=mkItems();S.items.logo.on=lo;S.texts=[];scatter(DEFSH);applyLayout(S.lay);
+  var f=mkItems();
+  if(!S.items.logo)S.items=f;
+  else{APPK[S.app].forEach(function(k){S.items[k]=f[k];});var lo=S.items.logo.on;S.items.logo=f.logo;S.items.logo.on=lo;}
+  S.texts=[];scatter(defShapes());layoutApp();
 }
 function rv(v){
   if(typeof v!=='string'||v[0]!=='$')return v;
@@ -586,6 +705,7 @@ function applyDS(d){
 function randomDesign(){
   var r=function(a){return a[Math.floor(Math.random()*a.length)];};
   var t=r(TH),dark=lum(t.tx)>.5;
+  if(S.app!=='mcq'){S.bg=t.id;syncUI();render();return;}
   var okT=function(a){return a.filter(function(x){return !x[2]._m&&(dark||!x[2]._d);});};
   S.bg=t.id;applyLayout(r(LAYS)[0]);applyQT(r(okT(QTPL))[0],1);applyOT(r(okT(OTPL))[0],1);
   var keys=LIB.filter(function(x){return x.c!=='cls';}).map(function(x){return x.k;}),pick=[];
@@ -595,7 +715,7 @@ function randomDesign(){
 function setSize(W,H){
   var fx=W/S.W,fy=H/S.H,f=Math.min(fx,fy);
   S.shapes.concat(S.texts).forEach(function(it){it.x=Math.round(it.x*fx);it.y=Math.round(it.y*fy);if(it.size)it.size=Math.round(it.size*f);if(it.w)it.w=Math.round(it.w*fx);});
-  S.W=W;S.H=H;applyLayout(S.lay);syncUI();render();
+  S.W=W;S.H=H;layoutApp();syncUI();render();
 }
 function addShape(k){
   var n=++S.nid;
@@ -609,7 +729,7 @@ function addTb(){
 }
 function placeItem(el){
   var id=el.getAttribute('data-id'),it=IT(id);if(!it)return;
-  if(el.classList.contains('tx')){el.style.left=it.x+'px';el.style.top=it.y+'px';el.style.width=it.w+'px';el.style.transform='rotate('+it.rot+'deg)';return;}
+  if(el.classList.contains('tx')){el.style.left=it.x+'px';el.style.top=it.y+'px';el.style.width=it.w+'px';if(id==='pfr')el.style.height=it.h+'px';el.style.transform='rotate('+it.rot+'deg)';return;}
   var w=it.size,h=id==='logo'?w*S.logoAR:w;
   el.style.left=(it.x-w/2)+'px';el.style.top=(it.y-h/2)+'px';el.style.width=w+'px';el.style.height=h+'px';
   el.style.transform='rotate('+it.rot+'deg)'+(it.flip?' scaleX(-1)':'');
@@ -661,7 +781,9 @@ function buildCard(q,prev,i){
   var p=document.createElement('div');p.className='post';
   p.style.cssText=themeVars(th)+'width:'+S.W+'px;height:'+S.H+'px;font-family:"'+S.font+'","Hind Siliguri","Noto Sans Bengali",sans-serif;';
   var html='';S.shapes.forEach(function(it){html+=shapeHTML(it,th);});
-  html+=tHTML('title',q.title||S.gT,h)+tHTML('sub',q.subtitle||S.gS,h)+qHTML(q,qt,sz,h,th,i)+oHTML(q,sz,ci,h);
+  HD=h;
+  if(S.app==='promo')html+=promoHTML();else if(S.app==='routine')html+=routineHTML();
+  else html+=tHTML('title',q.title||S.gT,h)+tHTML('sub',q.subtitle||S.gS,h)+qHTML(q,qt,sz,h,th,i)+oHTML(q,sz,ci,h);
   S.texts.forEach(function(t){html+=tbHTML(t,h);});
   if(S.items.logo.on&&S.logo)html+='<div class="it z3" data-id="logo"><img src="'+S.logo+'" alt=""></div>';
   p.innerHTML=html;
@@ -680,16 +802,16 @@ function render(){
   if(pend)return;pend=true;
   requestAnimationFrame(function(){
     pend=false;var list=$('list');list.innerHTML='';
-    S.data.forEach(function(q,i){
+    cards().forEach(function(q,i){
       var it=document.createElement('div');it.className='item'+(i===S.qi?' cur':'');
       var h=document.createElement('div');h.className='item-head';
-      var sp=document.createElement('span');sp.textContent='কার্ড '+(i+1);
+      var sp=document.createElement('span');sp.textContent=S.app==='mcq'?'কার্ড '+(i+1):(S.app==='promo'?'প্রচারণা পোস্ট':'রুটিন');
       var bx=document.createElement('span');bx.className='row';
       var be=document.createElement('button');be.className='btn alt sm';be.type='button';be.textContent='এডিট';
       be.addEventListener('click',function(){S.qi=i;buildQList();buildQForm();render();});
       var bt=document.createElement('button');bt.className='btn sm';bt.type='button';bt.textContent='ছবি ডাউনলোড (PNG)';
       bt.addEventListener('click',function(){single(i,bt);});
-      bx.appendChild(be);bx.appendChild(bt);h.appendChild(sp);h.appendChild(bx);
+      if(S.app==='mcq')bx.appendChild(be);bx.appendChild(bt);h.appendChild(sp);h.appendChild(bx);
       var sc=document.createElement('div');sc.className='scaler';sc.appendChild(buildCard(q,true,i));
       it.appendChild(h);it.appendChild(sc);list.appendChild(it);
     });
@@ -699,14 +821,15 @@ function render(){
 window.addEventListener('resize',fit);
 
 /* ---------- history & persistence ---------- */
-function core(){return {data:S.data,mode:S.mode,bg:S.bg,W:S.W,H:S.H,gT:S.gT,gS:S.gS,font:S.font,k:S.k,cyc:S.cyc,lay:S.lay,custom:Object.assign({},S.custom,{img:null}),items:S.items,shapes:S.shapes,texts:S.texts,nid:S.nid,sel:S.sel,qi:S.qi};}
+function core(){return {app:S.app,promo:S.promo,routine:S.routine,store:S.store,fmt:S.fmt,data:S.data,mode:S.mode,bg:S.bg,W:S.W,H:S.H,gT:S.gT,gS:S.gS,font:S.font,k:S.k,cyc:S.cyc,lay:S.lay,custom:Object.assign({},S.custom,{img:null}),items:S.items,shapes:S.shapes,texts:S.texts,nid:S.nid,sel:S.sel,qi:S.qi};}
 function applyCore(c){
-  ['data','mode','bg','W','H','gT','gS','font','k','cyc','lay','shapes','texts','nid'].forEach(function(f){if(c[f]!==undefined)S[f]=c[f];});
+  ['app','promo','routine','store','fmt','data','mode','bg','W','H','gT','gS','font','k','cyc','lay','shapes','texts','nid'].forEach(function(f){if(c[f]!==undefined)S[f]=c[f];});
   if(c.custom)S.custom=Object.assign({},S.custom,c.custom,{img:S.custom.img});
   if(c.items){var d=mkItems();Object.keys(d).forEach(function(k){d[k]=Object.assign(d[k],c.items[k]||{});});S.items=d;}
   S.data=S.data.map(normQ);if(!S.data.length)S.data=[normQ(SAMPLE[0])];
   S.qi=clamp(c.qi||0,0,S.data.length-1);S.sel=c.sel||'q';if(!IT(S.sel))S.sel='q';
   if(!THM[S.bg])S.bg='classic';updCustom();
+  if(!S.promo)S.promo=defPromo();if(!S.routine)S.routine=defRoutine();if(!S.store)S.store={};if(['mcq','promo','routine'].indexOf(S.app)<0)S.app='mcq';
 }
 var HS=[],HI=-1,hlock=false,svT=null;
 function updUndo(){$('undoBtn').disabled=HI<=0;$('redoBtn').disabled=HI>=HS.length-1;}
@@ -737,18 +860,29 @@ var FLD={
   q:TXT.concat([['num','k','প্রশ্ন নম্বর (১. ২.) দেখাও'],['bar','k','প্রশ্নের বক্স দেখাও'],['barBg','c','বক্সের রঙ'],['barBd','c','বক্সের বর্ডার রঙ'],['barBdW','r','বর্ডার মোটা',0,12],['barR','r','বক্সের কোণ গোল',0,70],['pad','r','বক্সের ভেতরের ফাঁক',6,70]],POS),
   opts:[['on','k','অপশন দেখাও'],['w','r','প্রস্থ',300,1300],['cols','s','কলাম',[[1,'১টি'],[2,'২টি']]],['gap','r','অপশনের ফাঁক',0,50],['h','r','বক্সের উচ্চতা',40,240],['r','r','কোণ গোল',0,90],['bdW','r','বর্ডার মোটা',0,12],['bg','c','বক্সের রঙ'],['bd','c','বর্ডারের রঙ'],['fs','r','লেখার আকার',12,90],['col','c','লেখার রঙ'],['ff','s','ফন্ট',FONTOPT],['sh','k','ছায়া'],
     ['lab','s','লেবেল',[['bn','ক খ গ ঘ'],['en','A B C D'],['enl','a b c d'],['num','১ ২ ৩ ৪'],['n','1 2 3 4']]],['bsh','s','ব্যাজের আকৃতি',[['circle','গোল'],['round','গোল-চৌকো'],['sq','চৌকো'],['none','ব্যাজ নেই']]],
-    ['bs','r','ব্যাজের আকার',30,160],['bfs','r','ব্যাজের লেখা',12,90],['bbg','c','ব্যাজের রঙ'],['bcol','c','ব্যাজের লেখার রঙ'],['okBg','c','সঠিক উত্তর: বক্সের রঙ'],['okBd','c','সঠিক উত্তর: বর্ডার ও ব্যাজ রঙ'],['okCol','c','সঠিক উত্তর: লেখার রঙ'],['mark','k','সঠিক উত্তরে ✓ চিহ্ন']].concat(POS)
+    ['bs','r','ব্যাজের আকার',30,160],['bfs','r','ব্যাজের লেখা',12,90],['bbg','c','ব্যাজের রঙ'],['bcol','c','ব্যাজের লেখার রঙ'],['okBg','c','সঠিক উত্তর: বক্সের রঙ'],['okBd','c','সঠিক উত্তর: বর্ডার ও ব্যাজ রঙ'],['okCol','c','সঠিক উত্তর: লেখার রঙ'],['mark','k','সঠিক উত্তরে ✓ চিহ্ন']].concat(POS),
+  pfr:[['on','k','ফ্রেম দেখাও'],['w','r','প্রস্থ',100,1300],['h','r','উচ্চতা',40,1300],['col','c','রঙ'],['bdW','r','বর্ডার মোটা',0,16],['r','r','কোণ গোল',0,80]].concat(POS),
+  ph:TXT.concat(POS),pl:TXT.concat(POS),
+  ps:TXT.concat([['bg','c','বারের রঙ'],['pad','r','ভেতরের ফাঁক',0,60],['rad','r','কোণ গোল',0,60]],POS),
+  pp:TXT.concat([['bg','c','ব্যানারের রঙ'],['bd','c','বর্ডারের রঙ'],['bdW','r','বর্ডার মোটা',0,12],['bds','s','বর্ডারের ধরন',[['dotted','ডটেড'],['dashed','ড্যাশ'],['solid','সলিড'],['none','নেই']]],['pad','r','ভেতরের ফাঁক',0,60],['rad','r','কোণ গোল',0,60]],POS),
+  pf:TXT.concat([['bg','c','বক্সের রঙ'],['pad','r','ভেতরের ফাঁক',0,60],['rad','r','কোণ গোল',0,80]],POS),
+  pi:[['on','k','লিস্ট দেখাও'],['w','r','প্রস্থ',200,1300],['cols','s','কলাম',[[1,'১টি'],[2,'২টি'],[3,'৩টি']]],['gap','r','আইটেমের ফাঁক',0,50],['h','r','আইটেমের উচ্চতা',40,240],['r','r','কোণ গোল',0,80],['bg','c','কার্ডের রঙ'],['fs','r','লেখার আকার',12,90],['col','c','লেখার রঙ'],['wt','k','বোল্ড'],['ff','s','ফন্ট',FONTOPT],['bw','r','ব্যাজের প্রস্থ',0,200],['bbg','c','ব্যাজের রঙ'],['bcol','c','চিহ্নের রঙ'],['mk','s','চিহ্ন',[['✓','✓'],['✔','✔'],['★','★'],['➤','➤'],['•','•'],['n','নম্বর ১ ২ ৩']]],['sh','k','ছায়া']].concat(POS),
+  rtl:TXT.concat([['ul','k','আন্ডারলাইন'],['ulc','c','আন্ডারলাইন রঙ']],POS),
+  rb1:[['on','k','দেখাও'],['fs','r','আকার',20,200],['w','r','প্রস্থ',200,1600],['ca','c','প্রথম শব্দের রঙ'],['cb','c','দ্বিতীয় শব্দের রঙ'],['deco','k','দুই পাশে দাগ'],['ff','s','ফন্ট',FONTOPT]].concat(POS),
+  rt:[['on','k','টেবিল দেখাও'],['w','r','প্রস্থ',300,1560],['fs','r','ঘরের লেখা',10,60],['hfs','r','হেডারের লেখা',10,60],['rh','r','সারির উচ্চতা',30,220],['bdW','r','লাইন মোটা',0,10],['hdrBg','c','হেডারের রঙ'],['dayBg','c','বার কলামের রঙ'],['batchBg','c','ব্যাচ কলামের রঙ'],['cellBg','c','ঘরের রঙ'],['bd','c','লাইনের রঙ'],['col','c','ঘরের লেখার রঙ'],['hcol','c','হেডার লেখার রঙ'],['dcol','c','বার লেখার রঙ'],['al','s','অ্যালাইন',AL],['wt','k','বোল্ড'],['ff','s','ফন্ট',FONTOPT],['batch','k','ব্যাচ কলাম দেখাও']].concat(POS)
 };
+FLD.rb2=FLD.rb1;
 function effFs(id){var z=sizes(S.data[S.qi]||SAMPLE[0]);return id==='q'?z[0]:z[1];}
 function dflt(id,k){
   var t=TM(),m={title:{col:t.tx},sub:{col:t.sub},q:{col:t.tx,barBg:t.qbg,barBd:t.qbd},opts:{col:t.otx,bg:t.obg,bd:t.obd,bbg:t.bdg,bcol:t.bdt,okBg:t.ok[0],okBd:t.ok[1],okCol:t.ok[2]}};
+  if(CD[id]&&CD[id][k])return hx(CD[id][k]);
   if(m[id]&&m[id][k])return hx(m[id][k]);
   if(isTb(id)&&k==='col')return hx(t.tx);
   var it=IT(id);if(it&&it.pi!=null)return hx(t.pal[it.pi%t.pal.length]);return '#ffffff';
 }
 function set(id,k,v){
   var it=IT(id);it[k]=v;
-  var move=(k==='rot'||k==='x'||k==='y')||((id==='logo'||isShape(id))&&(k==='size'||k==='flip'))||((TXI.indexOf(id)>=0||isTb(id))&&k==='w');
+  var move=(k==='rot'||k==='x'||k==='y')||((id==='logo'||isShape(id))&&(k==='size'||k==='flip'))||(id!=='logo'&&!isShape(id)&&k==='w')||(id==='pfr'&&k==='h');
   if(move){placeAll(id);persist();}else render();
 }
 function buildCtl(){
@@ -783,13 +917,13 @@ function buildCtl(){
   });
 }
 function refreshSelList(){
-  var o=[['q','প্রশ্ন'],['opts','অপশন (ক খ গ ঘ)'],['title','শিরোনাম'],['sub','উপশিরোনাম'],['logo','লোগো']];
+  var o=APPSEL[S.app].slice();
   S.shapes.forEach(function(x,i){var l=LK[x.k];o.push([x.id,'শেপ '+(i+1)+' – '+l.n+' / '+l.e]);});
   S.texts.forEach(function(x,i){o.push([x.id,'টেক্সট '+(i+1)+' – '+String(x.text).slice(0,14)]);});
   $('selSel').innerHTML=o.map(function(a){return '<option value="'+a[0]+'"'+(a[0]===S.sel?' selected':'')+'>'+esc(a[1])+'</option>';}).join('');
 }
 function syncSel(){
-  if(!IT(S.sel))S.sel='q';
+  if(!IT(S.sel)||(!removable(S.sel)&&!APPSEL[S.app].some(function(a){return a[0]===S.sel;})))S.sel=APPSEL[S.app][0][0];
   refreshSelList();buildCtl();markSel();
   $('dupBtn').disabled=$('delBtn').disabled=!removable(S.sel);
 }
@@ -951,7 +1085,9 @@ async function snap(q,i){
   try{
     var cv=await html2canvas(c,{scale:1,backgroundColor:null,useCORS:true,allowTaint:false,imageTimeout:3000,logging:false,width:S.W,height:S.H,scrollX:0,scrollY:0,windowWidth:S.W,windowHeight:S.H,removeContainer:true});
     if(!cv||!cv.width)throw new Error('Canvas তৈরি হয়নি');
-    return await new Promise(function(res,rej){cv.toBlob(function(b){b&&b.size>0?res(b):rej(new Error('PNG blob তৈরি হয়নি'));},'image/png',1);});
+    var mime=S.fmt==='jpg'?'image/jpeg':'image/png';
+    var blob=await new Promise(function(res,rej){cv.toBlob(function(b){b&&b.size>0?res(b):rej(new Error('blob তৈরি হয়নি'));},mime,.95);});
+    return await ensureClean(blob,mime);
   }finally{st.innerHTML='';st.style.display='none';}
 }
 async function saveFile(name,blob){
@@ -961,18 +1097,18 @@ async function saveFile(name,blob){
   a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();
   setTimeout(function(){a.remove();URL.revokeObjectURL(url);},1000);return true;
 }
-function fname(i){return 'mcq-'+String(i+1).padStart(2,'0')+(S.mode==='with'?'-answer':'')+'.png';}
+function fname(i){return (S.app==='mcq'?'mcq-'+String(i+1).padStart(2,'0')+(S.mode==='with'?'-answer':''):S.app)+'.'+(S.fmt==='jpg'?'jpg':'png');}
 async function single(i,btn){
   btn.disabled=true;
-  try{var b=await snap(S.data[i],i);if(await saveFile(fname(i),b))toast('ছবি তৈরি হয়েছে');}
+  try{var b=await snap(cards()[i],i);if(await saveFile(fname(i),b))toast('ছবি তৈরি হয়েছে');}
   catch(e){console.error(e);toast('ছবি তৈরি করা যায়নি। আবার চেষ্টা করুন।');}
   btn.disabled=false;
 }
 $('zipBtn').addEventListener('click',async function(){
-  var btn=this;if(!S.data.length)return;btn.disabled=true;
+  var btn=this;if(!cards().length)return;btn.disabled=true;
   try{
     var z=new JSZip();
-    for(var i=0;i<S.data.length;i++){toast('তৈরি হচ্ছে '+(i+1)+' / '+S.data.length);z.file(fname(i),await snap(S.data[i],i));}
+    for(var i=0;i<cards().length;i++){toast('তৈরি হচ্ছে '+(i+1)+' / '+cards().length);z.file(fname(i),await snap(cards()[i],i));}
     var blob=await z.generateAsync({type:'blob'});
     if(await saveFile('mcq-cards'+(S.mode==='with'?'-answer':'')+'.zip',blob))toast('ZIP তৈরি হয়েছে');
   }catch(e){console.error(e);toast('ZIP তৈরি করা যায়নি। আবার চেষ্টা করুন।');}
@@ -995,9 +1131,7 @@ function setLogo(src){
   im.src=src;
 }
 function readLogo(f){
-  var r=new FileReader();
-  r.onload=function(){setLogo(r.result);toast('লোগো যোগ হয়েছে। প্রিভিউতে টেনে সাজান।');};
-  r.readAsDataURL(f);
+  shrink(f,1200,function(u){setLogo(u);toast('লোগো যোগ হয়েছে (মেটাডাটা-মুক্ত)। প্রিভিউতে টেনে সাজান।');});
 }
 $('jsonFile').addEventListener('change',function(e){if(e.target.files[0])readJson(e.target.files[0]);});
 $('projFile').addEventListener('change',function(e){if(e.target.files[0])readJson(e.target.files[0]);});
@@ -1008,8 +1142,8 @@ $('saveProj').addEventListener('click',function(){
   saveFile('mcq-project.json',new Blob([JSON.stringify({v:2,core:core(),logo:S.logo,bgimg:S.custom.img})],{type:'application/json'})).then(function(){toast('প্রজেক্ট সেভ হয়েছে');});
 });
 $('newBtn').addEventListener('click',function(){
-  S.W=1200;S.H=630;S.bg='classic';S.font='Hind Siliguri';S.cyc='one';S.gT='';S.gS='';S.lay='left';S.custom.img=null;
-  S.items={};resetItems();S.data=[normQ(SAMPLE[0])];S.qi=0;S.sel='q';updCustom();syncUI();render();toast('নতুন প্রজেক্ট শুরু হয়েছে (আনডু করা যাবে)');
+  S.app='mcq';S.store={};S.promo=defPromo();S.routine=defRoutine();S.W=1200;S.H=630;S.bg='classic';S.font='Hind Siliguri';S.cyc='one';S.gT='';S.gS='';S.lay='left';S.custom.img=null;
+  S.items={};resetItems();S.data=[normQ(SAMPLE[0])];S.qi=0;S.sel='q';updCustom();showApp();syncUI();render();toast('নতুন প্রজেক্ট শুরু হয়েছে (আনডু করা যাবে)');
 });
 $('undoBtn').addEventListener('click',function(){goHist(-1);});
 $('redoBtn').addEventListener('click',function(){goHist(1);});
@@ -1026,7 +1160,7 @@ $('kR').addEventListener('input',function(){S.k=+this.value;$('kV').textContent=
 $('gT').addEventListener('input',function(){S.gT=this.value.trim();render();});
 $('gS').addEventListener('input',function(){S.gS=this.value.trim();render();});
 $('logoOn').addEventListener('change',function(){S.items.logo.on=this.checked;render();});
-$('resetBtn').addEventListener('click',function(){resetItems();S.sel='q';syncUI();render();toast('সাজানো রিসেট হয়েছে');});
+$('resetBtn').addEventListener('click',function(){resetItems();S.sel=APPSEL[S.app][0][0];syncUI();render();toast('সাজানো রিসেট হয়েছে');});
 
 /* background chips & custom */
 var BGL=TH.concat([{id:'custom',n:'কাস্টম'}]);
@@ -1066,14 +1200,16 @@ function buildLib(){
     b.onclick=function(){addShape(x.k);};L.appendChild(b);
   });
 }
-function buildTpl(id,arr,fn,ni){
+function buildTpl(id,arr,fn){
   var c=$(id);c.innerHTML='';
-  arr.forEach(function(a){var b=document.createElement('button');b.type='button';b.textContent=a[ni==null?1:ni];b.onclick=function(){fn(a);};c.appendChild(b);});
+  arr.forEach(function(a){var b=document.createElement('button');b.type='button';b.textContent=a[1]||a[0];b.onclick=function(){fn(a);};c.appendChild(b);});
 }
-buildTpl('tDS',DSETS,function(a){applyDS(a);},0);
+buildTpl('tDS',DSETS,function(a){applyDS(a);});
 buildTpl('tLY',LAYS,function(a){applyLayout(a[0]);syncUI();render();});
 buildTpl('tQT',QTPL,function(a){applyQT(a[0]);toast('প্রশ্নের স্টাইল: '+a[1]);});
 buildTpl('tOT',OTPL,function(a){applyOT(a[0]);toast('অপশনের স্টাইল: '+a[1]);});
+buildTpl('tPR',PPR,function(a){applyPP(a);},0);
+buildTpl('tRT',RPR,function(a){applyRP(a);},0);
 
 function syncUI(){
   document.querySelectorAll('input[name=mode]').forEach(function(r){r.checked=r.value===S.mode;});
@@ -1082,6 +1218,10 @@ function syncUI(){
   $('gT').value=S.gT;$('gS').value=S.gS;$('logoOn').checked=!!S.items.logo.on;
   var c=S.custom;$('cc1').value=c.c1;$('cc2').value=c.c2;$('cang').value=c.ang;$('cangV').textContent=c.ang;$('ctone').value=c.tone;
   syncBgRadio();syncCount();buildQList();buildQForm();syncSel();
+  $('fmtSel').value=S.fmt;
+  var P=S.promo,R=S.routine;
+  $('pHead').value=P.head;$('pSub').value=P.sub;$('pPrice').value=P.price;$('pLT').value=P.lt;$('pFoot').value=P.foot;$('pItems').value=P.items.join('\n');
+  $('rTitle').value=R.title;$('rbA').value=R.brandA;$('rbB').value=R.brandB;buildRtab();
 }
 
 /* drag & drop files */
@@ -1094,19 +1234,231 @@ document.addEventListener('drop',function(e){
   if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length){
     e.preventDefault();
     Array.prototype.forEach.call(e.dataTransfer.files,function(f){
-      if(/^image\//.test(f.type))readLogo(f);else if(/\.json$/i.test(f.name))readJson(f);
+      if(/^image\//.test(f.type)){if(document.body.classList.contains('v-clean'))addClean([f]);else readLogo(f);}else if(/\.json$/i.test(f.name))readJson(f);
     });
   }
 });
 
+/* ---------- apps: promo / routine ---------- */
+function cards(){return S.app==='mcq'?S.data:[{}];}
+function defShapes(){return S.app==='promo'?[['dgrid',.9,.09,.11],['dgrid',.07,.4,.075]]:S.app==='routine'?[]:DEFSH;}
+function layoutApp(){if(S.app==='promo')layoutPromo();else if(S.app==='routine')layoutRoutine();else applyLayout(S.lay);}
+function layoutPromo(){
+  var W=S.W,H=S.H,sx=W/1080,sy=H/1080,k=Math.min(sx,sy),I=S.items;
+  function P(n,x,y,w,fs){var it=I[n];it.x=Math.round(x*sx);it.y=Math.round(y*sy);it.w=Math.round(w*sx);it.rot=0;if(fs)it.fs=Math.round(fs*k);}
+  P('pfr',260,140,560);I.pfr.h=Math.round(335*sy);
+  P('ph',270,150,540,80);P('ps',285,250,510,50);P('pp',300,360,480,56);P('pl',240,520,600,46);
+  P('pi',70,610,940,33);I.pi.h=Math.round(108*k);I.pi.bw=Math.round(90*k);I.pi.gap=Math.round(18*k);
+  P('pf',240,990,600,38);
+  var g=I.logo;g.x=Math.round(130*sx);g.y=Math.round(70*sy);g.size=Math.round(150*k);g.rot=0;
+}
+function layoutRoutine(){
+  var W=S.W,H=S.H,sx=W/1600,sy=H/1200,k=Math.min(sx,sy),I=S.items;
+  function P(n,x,y,w,fs){var it=I[n];it.x=Math.round(x*sx);it.y=Math.round(y*sy);it.w=Math.round(w*sx);it.rot=0;if(fs)it.fs=Math.round(fs*k);}
+  P('rtl',100,28,1400,64);P('rb1',100,112,1400,72);P('rt',30,215,1540,26);I.rt.hfs=Math.round(30*k);I.rt.rh=Math.round(100*k);P('rb2',100,1090,1400,64);
+  var g=I.logo;g.x=Math.round(110*sx);g.y=Math.round(1135*sy);g.size=Math.round(100*k);g.rot=0;
+}
+function setApp(a){
+  if(a===S.app)return;
+  S.store[S.app]={shapes:S.shapes,texts:S.texts,W:S.W,H:S.H,bg:S.bg,logo:Object.assign({},S.items.logo)};
+  S.app=a;var st=S.store[a];
+  if(st){S.shapes=st.shapes;S.texts=st.texts;S.W=st.W;S.H=st.H;S.bg=st.bg;Object.assign(S.items.logo,st.logo);}
+  else{
+    var pr={mcq:[1200,630],promo:[1080,1080],routine:[1600,1200]}[a];
+    S.W=pr[0];S.H=pr[1];S.texts=[];S.bg=a==='promo'?'apricot':'classic';scatter(defShapes());layoutApp();
+  }
+  S.sel=APPSEL[a][0][0];showApp();syncUI();render();
+}
+function showApp(){
+  document.querySelectorAll('[data-app]').forEach(function(e){e.hidden=e.getAttribute('data-app').split(' ').indexOf(S.app)<0;});
+  var r=document.querySelector('input[name=app][value="'+S.app+'"]');if(r&&!document.body.classList.contains('v-clean'))r.checked=true;
+}
+function blk(id,t,extra){
+  var it=S.items[id];if(!it.on||!t)return '';
+  return '<div class="it tx" data-id="'+id+'" style="font-size:'+it.fs+'px;font-weight:'+(it.wt?700:500)+';color:'+(it.col||CD[id].col)+';text-align:'+it.al+';'+ffs(it.ff)+(extra||'')+'">'+HD+esc(t)+'</div>';
+}
+function promoHTML(){
+  var I=S.items,P=S.promo,o='',f=I.pfr;
+  if(f.on)o+='<div class="it tx z0" data-id="pfr" style="border:'+f.bdW+'px solid '+(f.col||CD.pfr.col)+';border-radius:'+f.r+'px">'+HD+'</div>';
+  o+=blk('ph',P.head);
+  var s=I.ps;o+=blk('ps',P.sub,'background:'+(s.bg||CD.ps.bg)+';padding:'+s.pad+'px;border-radius:'+s.rad+'px;');
+  var p=I.pp;o+=blk('pp',P.price,'background:'+(p.bg||CD.pp.bg)+';padding:'+p.pad+'px;border-radius:'+p.rad+'px;'+(p.bds==='none'||!p.bdW?'':'border:'+p.bdW+'px '+p.bds+' '+(p.bd||CD.pp.bd)+';'));
+  o+=blk('pl',P.lt);
+  var l=I.pi,items=P.items.filter(function(x){return String(x).trim();});
+  if(l.on&&items.length){
+    var rows=Math.ceil(items.length/l.cols),cs='';
+    items.forEach(function(t,i){
+      var mk=l.mk==='n'?toBn(i+1):l.mk;
+      cs+='<div style="display:flex;align-items:stretch;min-height:'+l.h+'px;background:'+(l.bg||CD.pi.bg)+';border-radius:'+l.r+'px;overflow:hidden;'+(l.sh?'box-shadow:0 6px 14px rgba(0,0,0,.14);':'')+'">'+
+        (l.bw?'<div style="flex:none;width:'+l.bw+'px;display:flex;align-items:center;justify-content:center;background:'+(l.bbg||CD.pi.bbg)+';color:'+(l.bcol||CD.pi.bcol)+';font-size:'+Math.round(l.bw*.5)+'px;font-weight:700;line-height:1;border-radius:'+l.r+'px 0 0 '+l.r+'px">'+esc(mk)+'</div>':'')+
+        '<div style="flex:1;display:flex;align-items:center;padding:8px 20px;font-size:'+l.fs+'px;font-weight:'+(l.wt?700:500)+';line-height:1.25;color:'+(l.col||CD.pi.col)+'">'+esc(t)+'</div></div>';
+    });
+    o+='<div class="it tx" data-id="pi" style="'+ffs(l.ff)+'">'+HD+'<div style="display:grid;grid-template-columns:repeat('+l.cols+',1fr);grid-template-rows:repeat('+rows+',auto);grid-auto-flow:column;gap:'+l.gap+'px">'+cs+'</div></div>';
+  }
+  var ft=I.pf;o+=blk('pf',P.foot,'background:'+(ft.bg||CD.pf.bg)+';padding:'+ft.pad+'px;border-radius:'+ft.rad+'px;');
+  return o;
+}
+function decor(side,a,b){
+  var r=side==='l'?1:-1;
+  return '<span style="display:inline-block;vertical-align:middle;margin:0 .45em;width:.7em">'+[[26,a],[0,a],[-26,b]].map(function(x){return '<i style="display:block;height:.07em;min-height:4px;border-radius:4px;margin:.1em 0;background:'+x[1]+';transform:rotate('+(x[0]*r)+'deg)"></i>';}).join('')+'</span>';
+}
+function brandHTML(id){
+  var it=S.items[id],R=S.routine;if(!it.on)return '';
+  var a=it.ca||CD[id].ca,b=it.cb||CD[id].cb,g='#0f9d58';
+  return '<div class="it tx" data-id="'+id+'" style="font-size:'+it.fs+'px;font-weight:700;text-align:center;white-space:nowrap;'+ffs(it.ff)+'">'+HD+(it.deco?decor('l',g,b):'')+'<span style="color:'+a+'">'+esc(R.brandA)+'</span> <span style="color:'+b+'">'+esc(R.brandB)+'</span>'+(it.deco?decor('r',g,b):'')+'</div>';
+}
+function routineHTML(){
+  var I=S.items,R=S.routine,o='',T=I.rtl;
+  if(T.on&&R.title)o+='<div class="it tx" data-id="rtl" style="font-size:'+T.fs+'px;font-weight:'+(T.wt?700:500)+';color:'+(T.col||CD.rtl.col)+';text-align:'+T.al+';'+ffs(T.ff)+'">'+HD+'<span style="display:inline-block;'+(T.ul?'border-bottom:5px solid '+(T.ulc||CD.rtl.ulc)+';padding-bottom:4px':'')+'">'+esc(R.title)+'</span></div>';
+  o+=brandHTML('rb1')+brandHTML('rb2');
+  var t=I.rt;
+  if(t.on){
+    var n=R.slots.length,cd=CD.rt,bc=t.bd||cd.bd,bw=t.bdW,sb=t.batch;
+    var cols=(sb?'minmax(0,.8fr) minmax(0,1.1fr) ':'minmax(0,.9fr) ')+'repeat('+n+',minmax(0,1fr))';
+    var base='box-sizing:border-box;border-right:'+bw+'px solid '+bc+';border-bottom:'+bw+'px solid '+bc+';display:flex;align-items:center;justify-content:center;text-align:'+t.al+';padding:6px 8px;line-height:1.25;word-break:break-word;white-space:pre-line;';
+    var cell=function(x,bg,col,fs,wt,mh){return '<div style="'+base+'background:'+bg+';color:'+col+';font-size:'+fs+'px;font-weight:'+wt+';min-height:'+mh+'px">'+x+'</div>';};
+    var hbg=t.hdrBg||cd.hdrBg,hc=t.hcol||cd.hcol,dbg=t.dayBg||cd.dayBg,dc=t.dcol||cd.dcol,bbg=t.batchBg||cd.batchBg,cbg=t.cellBg||cd.cellBg,cc=t.col||cd.col,hm=Math.round(t.rh*.85),cs='';
+    cs+=cell(esc(R.dayLab),dbg,dc,t.hfs,700,hm);
+    if(sb)cs+=cell(esc(R.batchLab),bbg,dc,t.hfs,700,hm);
+    R.slots.forEach(function(s){cs+=cell('<div style="text-align:center"><div>'+esc(s.l)+'</div><div>'+esc(s.t)+'</div></div>',hbg,hc,t.hfs,700,hm);});
+    R.rows.forEach(function(r){
+      cs+=cell(esc(r.d),dbg,dc,t.fs,700,t.rh);
+      if(sb)cs+=cell(esc(r.b),bbg,dc,t.fs,t.wt?700:500,t.rh);
+      for(var j=0;j<n;j++)cs+=cell(esc(r.c[j]||''),cbg,cc,t.fs,t.wt?700:500,t.rh);
+    });
+    o+='<div class="it tx" data-id="rt" style="'+ffs(t.ff)+'">'+HD+'<div style="display:grid;grid-template-columns:'+cols+';border-left:'+bw+'px solid '+bc+';border-top:'+bw+'px solid '+bc+'">'+cs+'</div></div>';
+  }
+  return o;
+}
+function applyPP(a){S.bg=a[1];Object.keys(a[2]).forEach(function(id){Object.assign(S.items[id],a[2][id]);});syncUI();render();toast('টেমপ্লেট: '+a[0]);}
+function applyRP(a){Object.assign(S.items.rt,a[1]);syncUI();render();toast('রুটিন স্টাইল: '+a[0]);}
+
+/* promo / routine editors */
+[['pHead','head'],['pSub','sub'],['pPrice','price'],['pLT','lt'],['pFoot','foot']].forEach(function(a){$(a[0]).addEventListener('input',function(){S.promo[a[1]]=this.value;render();});});
+$('pItems').addEventListener('input',function(){S.promo.items=this.value.split('\n');render();});
+[['rTitle','title'],['rbA','brandA'],['rbB','brandB']].forEach(function(a){$(a[0]).addEventListener('input',function(){S.routine[a[1]]=this.value;render();});});
+function buildRtab(){
+  var R=S.routine,box=$('rtabBox');box.innerHTML='';
+  var t=document.createElement('table');t.className='rtab';
+  function td(el){var c=document.createElement('td');c.appendChild(el);return c;}
+  function inp(v,fn,cls){var i=document.createElement('input');i.type='text';i.value=v||'';if(cls)i.className=cls;i.oninput=function(){fn(i.value);render();};return i;}
+  function x(fn){var b=document.createElement('button');b.type='button';b.className='x';b.textContent='✕';b.title='মুছুন';b.onclick=fn;return b;}
+  var hr=document.createElement('tr');
+  hr.appendChild(td(inp(R.dayLab,function(v){R.dayLab=v;},'sm')));hr.appendChild(td(inp(R.batchLab,function(v){R.batchLab=v;},'sm')));
+  R.slots.forEach(function(s,j){var c=document.createElement('td');c.appendChild(inp(s.l,function(v){s.l=v;}));c.appendChild(document.createElement('br'));c.appendChild(inp(s.t,function(v){s.t=v;}));c.appendChild(x(function(){delCol(j);}));hr.appendChild(c);});
+  t.appendChild(hr);
+  R.rows.forEach(function(r,i){
+    var tr=document.createElement('tr');
+    tr.appendChild(td(inp(r.d,function(v){r.d=v;},'sm')));tr.appendChild(td(inp(r.b,function(v){r.b=v;},'sm')));
+    R.slots.forEach(function(s,j){tr.appendChild(td(inp(r.c[j],function(v){r.c[j]=v;})));});
+    var lc=document.createElement('td');lc.appendChild(x(function(){delRow(i);}));tr.appendChild(lc);t.appendChild(tr);
+  });
+  box.appendChild(t);
+}
+function delRow(i){var R=S.routine;if(R.rows.length>1)R.rows.splice(i,1);buildRtab();render();}
+function delCol(j){var R=S.routine;if(R.slots.length>1){R.slots.splice(j,1);R.rows.forEach(function(r){r.c.splice(j,1);});}buildRtab();render();}
+$('rAddRow').addEventListener('click',function(){var R=S.routine,l=R.rows[R.rows.length-1]||{b:''};R.rows.push({d:'নতুন বার',b:l.b,c:R.slots.map(function(){return '';})});buildRtab();render();});
+$('rAddCol').addEventListener('click',function(){var R=S.routine;R.slots.push({l:'নতুন',t:''});R.rows.forEach(function(r){r.c.push('');});buildRtab();render();});
+$('rReset').addEventListener('click',function(){S.routine=defRoutine();syncUI();render();});
+$('rClear').addEventListener('click',function(){S.routine.rows.forEach(function(r){r.c=r.c.map(function(){return '';});});buildRtab();render();});
+
+/* ---------- metadata cleaner ---------- */
+function u32(u,i){return ((u[i]<<24)|(u[i+1]<<16)|(u[i+2]<<8)|u[i+3])>>>0;}
+function scanBuf(buf){
+  var u=new Uint8Array(buf),f={};
+  function str(a,b){var s='';for(var i=a;i<b&&i<u.length;i++)s+=String.fromCharCode(u[i]);return s;}
+  if(u[0]===0x89&&u[1]===0x50){
+    var p=8;
+    while(p+8<=u.length){
+      var len=u32(u,p),t=str(p+4,p+8);
+      if(t==='tEXt'||t==='iTXt'||t==='zTXt')f['PNG টেক্সট/XMP চাঙ্ক']=1;
+      if(t==='eXIf')f['EXIF']=1;if(t==='iCCP')f['ICC প্রোফাইল']=1;if(t==='caBX')f['C2PA / Content Credentials']=1;
+      if(t==='IEND')break;p+=12+len;
+    }
+  }else if(u[0]===0xFF&&u[1]===0xD8){
+    var q=2;
+    while(q+4<=u.length&&u[q]===0xFF){
+      var m=u[q+1];if(m===0xDA||m===0xD9)break;
+      var l=(u[q+2]<<8)|u[q+3],id=str(q+4,q+34);
+      if(m===0xE1)f[id.indexOf('Exif')===0?'EXIF':'XMP']=1;
+      if(m===0xEB)f['C2PA / Content Credentials']=1;
+      if(m===0xED)f['Photoshop / IPTC']=1;
+      if(m===0xE2&&id.indexOf('ICC')===0)f['ICC প্রোফাইল']=1;
+      if(m===0xFE)f['JPEG কমেন্ট']=1;
+      q+=2+l;
+    }
+  }else if(str(0,4)==='RIFF'&&str(8,12)==='WEBP'){
+    var w=12;
+    while(w+8<=u.length){
+      var t2=str(w,w+4),l2=(u[w+4]|(u[w+5]<<8)|(u[w+6]<<16)|(u[w+7]<<24))>>>0;
+      if(t2==='EXIF')f['EXIF']=1;if(t2==='XMP ')f['XMP']=1;if(t2==='ICCP')f['ICC প্রোফাইল']=1;
+      w+=8+l2+(l2&1);
+    }
+  }
+  var all='';try{all=new TextDecoder('latin1').decode(u);}catch(e){}
+  if(all.indexOf('c2pa')>=0)f['C2PA / Content Credentials']=1;
+  if(all.indexOf('trainedAlgorithmicMedia')>=0)f['AI-সোর্স মার্কার (IPTC)']=1;
+  return Object.keys(f);
+}
+function loadImg(url){return new Promise(function(res,rej){var im=new Image();im.onload=function(){res(im);};im.onerror=function(){rej(new Error('ছবি পড়া যায়নি'));};im.src=url;});}
+async function reencode(file,mime){
+  var url=URL.createObjectURL(file),im;
+  try{im=await loadImg(url);}finally{URL.revokeObjectURL(url);}
+  var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;
+  var g=c.getContext('2d');if(mime==='image/jpeg'){g.fillStyle='#ffffff';g.fillRect(0,0,c.width,c.height);}
+  g.drawImage(im,0,0);
+  return await new Promise(function(res,rej){c.toBlob(function(b){b?res(b):rej(new Error('ফাইল তৈরি হয়নি'));},mime,.95);});
+}
+async function ensureClean(blob,mime){
+  var f=scanBuf(await blob.arrayBuffer());
+  return f.length?await reencode(blob,mime):blob;
+}
+var CL=[];
+function cMime(){return $('cleanFmt').value==='jpg'?'image/jpeg':'image/png';}
+function cName(f){return f.name.replace(/\.[^.]+$/,'')+'-clean.'+$('cleanFmt').value;}
+function addClean(files){
+  Array.prototype.forEach.call(files,function(f){
+    if(!/^image\//.test(f.type))return;
+    var it={file:f,url:URL.createObjectURL(f)};CL.push(it);
+    var r=document.createElement('div');r.className='crow';
+    r.innerHTML='<img alt=""><div class="inf"><b></b><div class="meta">স্ক্যান হচ্ছে…</div></div><button class="btn sm" type="button">ক্লিন ডাউনলোড</button>';
+    r.querySelector('img').src=it.url;r.querySelector('b').textContent=f.name+' ('+Math.round(f.size/1024)+' KB)';
+    f.arrayBuffer().then(function(b){
+      var found=scanBuf(b);
+      r.querySelector('.meta').innerHTML=found.length?found.map(function(x){return '<span class="tag">'+esc(x)+'</span>';}).join(''):'<span class="tag ok">কোনো মেটাডাটা পাওয়া যায়নি</span>';
+    });
+    r.querySelector('button').onclick=async function(){
+      var btn=this;btn.disabled=true;
+      try{var b=await reencode(f,cMime());var left=scanBuf(await b.arrayBuffer());await saveFile(cName(f),b);toast(left.length?'ক্লিন করা গেছে, তবে কিছু মার্কার রয়ে গেছে':'ক্লিন ফাইল তৈরি ✓ (মেটাডাটা নেই)');}
+      catch(e){toast('ক্লিন করা যায়নি');}
+      btn.disabled=false;
+    };
+    $('cleanList').appendChild(r);
+  });
+}
+$('cleanFile').addEventListener('change',function(){addClean(this.files);this.value='';});
+$('cleanZip').addEventListener('click',async function(){
+  if(!CL.length){toast('আগে ছবি বাছুন');return;}
+  var btn=this;btn.disabled=true;
+  try{var z=new JSZip();for(var i=0;i<CL.length;i++){toast('ক্লিন হচ্ছে '+(i+1)+' / '+CL.length);z.file(cName(CL[i].file),await reencode(CL[i].file,cMime()));}
+    await saveFile('clean-images.zip',await z.generateAsync({type:'blob'}));toast('ZIP তৈরি হয়েছে');}
+  catch(e){toast('ZIP তৈরি করা যায়নি');}
+  btn.disabled=false;
+});
+document.querySelectorAll('input[name=app]').forEach(function(r){r.addEventListener('change',function(){
+  if(r.value==='clean'){document.body.classList.add('v-clean');return;}
+  document.body.classList.remove('v-clean');setApp(r.value);
+});});
+$('fmtSel').addEventListener('change',function(){S.fmt=this.value;});
+
 /* init */
 S.logo=makeDefaultLogo();
-resetItems();updCustom();
+S.promo=defPromo();S.routine=defRoutine();resetItems();updCustom();
 var saved=null,lg=null;
 try{saved=JSON.parse(localStorage.getItem('mcq-app-v2')||'null');lg=localStorage.getItem('mcq-logo');var bi=localStorage.getItem('mcq-bgimg');if(bi)S.custom.img=bi;}catch(e){}
 if(saved&&saved.data&&saved.data.length){try{applyCore(saved);}catch(e){console.warn(e);}}
 if(!S.data.length)S.data=[normQ(SAMPLE[0])];
-buildLib();syncUI();
+buildLib();showApp();syncUI();
 if(lg)setLogo(lg);
 render();
 pushHist();
